@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <title>Los Golfos del Jueves ⛳ | Golf Points & Scorecard</title>
+  <meta name="theme-color" content="#064e3b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-main: #071712;
+      --bg-card: #0d261e;
+      --bg-elevated: #13352a;
+      --border-subtle: #1f4d3d;
+      --accent-emerald: #10b981;
+      --accent-gold: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Native Dialog Backdrop per modern-web-guidance (light-dismiss-a-dialog) */
+    dialog {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 1rem;
+      padding: 0;
+      max-width: 32rem;
+      width: calc(100% - 1.5rem);
+      margin: auto;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    dialog::backdrop {
+      background-color: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Responsive Table per modern-web-guidance (responsive-table) */
+    .table-wrapper {
+      overflow: auto;
+      max-inline-size: 100%;
+      max-block-size: min(540px, 78vh);
+      container-type: inline-size;
+      border-radius: 0.75rem;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-card);
+    }
+
+    .scorecard-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.875rem;
+    }
+
+    .scorecard-table thead {
+      position: sticky;
+      inset-block-start: 0;
+      z-index: 3;
+      background: var(--bg-elevated);
+    }
+
+    .scorecard-table th,
+    .scorecard-table td {
+      padding: 0.625rem 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .scorecard-table tbody th {
+      position: sticky;
+      inset-inline-start: 0;
+      z-index: 2;
+      background: var(--bg-card);
+      text-align: left;
+      font-weight: 600;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    @container (width < 560px) {
+      .scorecard-table.stacked-mobile,
+      .scorecard-table.stacked-mobile thead,
+      .scorecard-table.stacked-mobile tbody,
+      .scorecard-table.stacked-mobile tr,
+      .scorecard-table.stacked-mobile th,
+      .scorecard-table.stacked-mobile td {
+        display: block;
+      }
+
+      .scorecard-table.stacked-mobile thead {
+        display: none;
+      }
+
+      .scorecard-table.stacked-mobile tr {
+        margin-block-end: 0.75rem;
+        border: 1px solid var(--border-subtle);
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: var(--bg-card);
+      }
+
+      .scorecard-table.stacked-mobile tbody th {
+        position: sticky;
+        inset-block-start: 0;
+        z-index: 2;
+        background: var(--bg-elevated);
+        border-right: none;
+        padding: 0.625rem 0.875rem;
+      }
+
+      .scorecard-table.stacked-mobile td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        padding: 0.5rem 0.875rem;
+      }
+
+      .scorecard-table.stacked-mobile td:nth-child(2)::before {
+        content: var(--label-2) ": ";
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .scorecard-table.stacked-mobile td:nth-child(3)::before {
+        content: var(--label-3) ": ";
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .scorecard-table.stacked-mobile td:nth-child(4)::before {
+        content: var(--label-4) ": ";
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .scorecard-table.stacked-mobile td:nth-child(5)::before {
+        content: var(--label-5) ": ";
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+      .scorecard-table.stacked-mobile td:nth-child(6)::before {
+        content: var(--label-6) ": ";
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+    }
+
+    /* Hide scrollbar for hole selector strip */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 selection:bg-emerald-500 selection:text-black">
+
+  <!-- Top Club Header -->
+  <header class="sticky top-0 z-30 bg-[#071712]/95 backdrop-blur-md border-b border-emerald-900/60 px-4 py-3">
+    <div class="max-w-3xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/60 border border-emerald-400/30 text-xl" aria-hidden="true">
+          ⛳
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight text-white leading-none">
+              Los Golfos del Jueves
+            </h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
+              Oficial
+            </span>
+          </div>
+          <button id="courseNameBtn" type="button" class="text-xs text-emerald-300/80 hover:text-emerald-200 flex items-center gap-1 mt-0.5">
+            <span id="courseNameDisplay">Club de Golf · Jueves de Ronda</span>
+            <span>✏️</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="openPlayersBtn" type="button" class="px-3 py-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900/80 border border-emerald-700/50 text-xs font-medium text-emerald-100 flex items-center gap-1.5 transition">
+          <span>👥</span>
+          <span>Golfos (<span id="playerCountBadge">4</span>)</span>
+        </button>
+        <button id="openPointsBtn" type="button" class="px-3 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-xs font-semibold text-amber-300 flex items-center gap-1.5 transition">
+          <span>⚙️</span>
+          <span>Puntos</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-3xl mx-auto px-3 sm:px-4 pt-3 space-y-4">
+
+    <!-- Mini Live Podium Bar (Always visible so everyone sees who is winning) -->
+    <section aria-label="Líderes en vivo" class="bg-[#0d261e] border border-emerald-800/60 rounded-2xl p-3 shadow-md">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+          <span>🔥</span> Ranking en Vivo (Puntos &amp; Golpes)
+        </span>
+        <span id="holesPlayedSummary" class="text-xs text-slate-400">0 / 18 hoyos jugados</span>
+      </div>
+      <div id="miniLeaderboard" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav aria-label="Vistas principales" class="grid grid-cols-3 gap-1.5 bg-[#0d261e] p-1.5 rounded-xl border border-emerald-900/70">
+      <button type="button" data-tab="capture" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
+        <span>🏌️‍♂️</span>
+        <span>Hoyo x Hoyo</span>
+      </button>
+      <button type="button" data-tab="scorecard" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
+        <span>📊</span>
+        <span>Tarjeta &amp; Logros</span>
+      </button>
+      <button type="button" data-tab="hoyo19" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
+        <span>🍻</span>
+        <span>Hoyo 19</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: HOLE BY HOLE CAPTURE -->
+    <section id="tab-capture" class="space-y-4">
+      <!-- 18-Hole Horizontal Pill Strip -->
+      <div class="bg-[#0d261e] border border-emerald-900/60 rounded-2xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <button id="prevHoleBtn" type="button" class="px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-xs font-medium text-emerald-200 disabled:opacity-40">
+            ◀ Ant.
+          </button>
+          <span class="text-xs font-semibold text-slate-300">Selecciona Hoyo (1 - 18)</span>
+          <button id="nextHoleBtn" type="button" class="px-2.5 py-1 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-xs font-medium text-emerald-200 disabled:opacity-40">
+            Sig. ▶
+          </button>
+        </div>
+        <div id="holeStrip" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Current Hole Header & Par / Winner Selector -->
+      <div class="bg-gradient-to-br from-[#113328] to-[#0b221a] border border-emerald-700/50 rounded-2xl p-4 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-emerald-800/60">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="currentHoleTitle" class="text-2xl font-extrabold text-white tracking-tight">Hoyo 1</h2>
+              <span id="carryoverBadge" class="hidden text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 font-bold">
+                🔥 Acumulado +2 pts
+              </span>
+            </div>
+            <p class="text-xs text-emerald-300/80 mt-0.5">
+              Par, Birdie y Hole in One se marcan solos según los golpes
+            </p>
+          </div>
+
+          <!-- Par Selector -->
+          <div class="flex items-center gap-1.5 bg-[#071712]/80 p-1.5 rounded-xl border border-emerald-800/70" role="group" aria-label="Par del hoyo">
+            <span class="text-xs font-semibold text-slate-400 px-1.5">PAR:</span>
+            <button type="button" data-par="3" class="par-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">
+              Par 3
+            </button>
+            <button type="button" data-par="4" class="par-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">
+              Par 4
+            </button>
+            <button type="button" data-par="5" class="par-btn px-3 py-1.5 rounded-lg text-xs font-bold transition">
+              Par 5
+            </button>
+          </div>
+        </div>
+
+        <!-- Hole Winner Banner (Auto or Manual Override) -->
+        <div class="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-semibold">🏆 Ganador del Hoyo:</span>
+            <span id="holeWinnerSummary" class="font-bold text-white bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-800">
+              Sin golpes registrados
+            </span>
+          </div>
+          <button id="clearHoleBtn" type="button" class="text-xs text-slate-400 hover:text-rose-300 underline">
+            Limpiar hoyo
+          </button>
+        </div>
+      </div>
+
+      <!-- Player Capture Cards for Current Hole -->
+      <div id="playerHoleCards" class="space-y-3">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- TAB 2: SCORECARD & BREAKDOWN -->
+    <section id="tab-scorecard" class="hidden space-y-4">
+      <!-- Detailed Achievements Table -->
+      <div class="bg-[#0d261e] border border-emerald-800/60 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 id="scorecard-caption" class="text-base font-bold text-white">Tabla de Puntos y Logros del Jueves</h2>
+            <p class="text-xs text-slate-400">Desglose completo de Hoyos Ganados, Golpes, Pares, Birdies, O'yes, Hole Outs y Hole in One</p>
+          </div>
+        </div>
+
+        <div tabindex="0" role="region" aria-labelledby="scorecard-caption" class="table-wrapper">
+          <table class="scorecard-table stacked-mobile" style="--label-2: 'Puntos Totales'; --label-3: 'Golpes (vs Par)'; --label-4: 'Hoyos Ganados'; --label-5: 'Par / Birdie / HIO'; --label-6: 'O\'yes / Hole Out';">
+            <thead>
+              <tr>
+                <th>Jugador</th>
+                <th>Puntos</th>
+                <th>Golpes</th>
+                <th>🏆 Hoyos</th>
+                <th>⛳ Par / 🐦 Birdie / 👑 HIO</th>
+                <th>🎯 O'yes / 💥 Hole Out</th>
+              </tr>
+            </thead>
+            <tbody id="summaryTableBody">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Hole-by-Hole Matrix -->
+      <div class="bg-[#0d261e] border border-emerald-800/60 rounded-2xl p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 id="hole-matrix-caption" class="text-sm font-bold text-white">Tarjeta Hoyo por Hoyo (Golpes y Puntos)</h3>
+          <span class="text-xs text-emerald-300">Toca cualquier hoyo para editarlo</span>
+        </div>
+        <div tabindex="0" role="region" aria-labelledby="hole-matrix-caption" class="table-wrapper">
+          <table class="scorecard-table">
+            <thead id="matrixTableHead"></thead>
+            <tbody id="matrixTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: HOYO 19 (SETTLEMENT & WHATSAPP SHARE) -->
+    <section id="tab-hoyo19" class="hidden space-y-4">
+      <div class="bg-gradient-to-br from-amber-500/15 via-[#0d261e] to-[#0d261e] border border-amber-500/40 rounded-2xl p-4 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-lg font-extrabold text-amber-300 flex items-center gap-2">
+              <span>🍻</span> Liquidación del Hoyo 19
+            </h2>
+            <p class="text-xs text-slate-300">
+              Resumen de campeones del jueves, diferencias de puntos y reporte para WhatsApp
+            </p>
+          </div>
+          <div class="flex items-center gap-2 bg-[#071712] px-3 py-1.5 rounded-xl border border-amber-500/30">
+            <label for="pointValueInput" class="text-xs text-slate-300 font-medium">$ por Punto:</label>
+            <input id="pointValueInput" type="number" min="0" step="5" class="w-20 bg-transparent text-amber-300 font-bold text-sm text-right focus:outline-none" value="50" />
+          </div>
+        </div>
+
+        <!-- Badges of the Day -->
+        <div id="hoyo19Awards" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Payout / Points Diff Breakdown -->
+        <div class="bg-[#071712]/80 border border-emerald-900/80 rounded-xl p-3.5 space-y-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">
+            Balance de Puntos y Liquidación Entre Amigos
+          </h3>
+          <div id="settlementList" class="space-y-2 text-xs sm:text-sm">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- WhatsApp Share Box -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label for="whatsappPreview" class="text-xs font-semibold text-slate-300">Resumen listo para el grupo de WhatsApp:</label>
+            <button id="copyWhatsappBtn" type="button" class="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs flex items-center gap-1.5 shadow transition">
+              <span>📲</span>
+              <span id="copyBtnText">Copiar Resumen WhatsApp</span>
+            </button>
+          </div>
+          <textarea id="whatsappPreview" readonly rows="8" class="w-full rounded-xl bg-[#071712] border border-emerald-800/70 p-3 text-xs font-mono text-emerald-100 focus:outline-none"></textarea>
+        </div>
+
+        <!-- Reset Round -->
+        <div class="pt-2 border-t border-emerald-900/60 flex items-center justify-between">
+          <button id="loadDemoBtn" type="button" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium underline">
+            Cargar ejemplo de ronda de jueves
+          </button>
+          <button id="resetRoundBtn" type="button" class="px-3 py-1.5 rounded-lg bg-rose-950/70 hover:bg-rose-900/80 border border-rose-700/50 text-xs font-semibold text-rose-200 transition">
+            🗑️ Nueva Ronda (Reiniciar)
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- DIALOG 1: CUSTOMIZE POINTS RULES (Uses closedby="any" + JS Fallback) -->
+  <dialog id="pointsDialog" closedby="any" aria-labelledby="pointsDialogTitle">
+    <form method="dialog" class="p-5 space-y-4">
+      <div class="flex items-start justify-between gap-2 border-b border-emerald-800/60 pb-3">
+        <div>
+          <h2 id="pointsDialogTitle" class="text-base font-bold text-white flex items-center gap-2">
+            <span>⚙️</span> Personalizar Sistema de Puntos
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Ajusta cuántos puntos vale cada logro para "Los Golfos del Jueves". Se recalcula toda la ronda al instante.
+          </p>
+        </div>
+        <button type="submit" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg">✕</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">🏆 Ganar el Hoyo (Skin)</span>
+          <input id="rule_holeWin" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-amber-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">⛳ Hacer Par</span>
+          <input id="rule_par" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-emerald-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">🐦 Hacer Birdie (-1)</span>
+          <input id="rule_birdie" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-sky-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">🦅 Hacer Águila (-2)</span>
+          <input id="rule_eagle" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-purple-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">🎯 O'yes (Closest to Pin)</span>
+          <input id="rule_oyes" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-amber-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80">
+          <span class="font-semibold text-white">💥 Hole Out (Fuera green)</span>
+          <input id="rule_holeOut" type="number" class="w-16 bg-emerald-950 border border-emerald-700 rounded-lg px-2 py-1 text-right font-bold text-rose-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80 sm:col-span-2">
+          <span class="font-semibold text-amber-300">👑 Hole in One (Hoyo en 1)</span>
+          <input id="rule_holeInOne" type="number" class="w-20 bg-emerald-950 border border-amber-500/60 rounded-lg px-2 py-1 text-right font-bold text-amber-300" />
+        </label>
+
+        <label class="flex items-center justify-between bg-[#071712] p-3 rounded-xl border border-emerald-900/80 sm:col-span-2 cursor-pointer">
+          <div>
+            <div class="font-semibold text-white">🔥 Acumular Hoyo Ganado en Empates (Carryover)</div>
+            <div class="text-slate-400 text-xs">Si empatan el menor score y nadie se marca ganador manual, los puntos del hoyo se suman al siguiente.</div>
+          </div>
+          <input id="rule_carryover" type="checkbox" class="w-5 h-5 accent-emerald-500 rounded" />
+        </label>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-emerald-800/60">
+        <button id="restoreDefaultRulesBtn" type="button" class="text-xs text-slate-400 hover:text-white underline">
+          Restaurar valores sugeridos
+        </button>
+        <button id="saveRulesBtn" type="submit" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow">
+          Guardar Puntos
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- DIALOG 2: MANAGE PLAYERS (Uses closedby="any" + JS Fallback) -->
+  <dialog id="playersDialog" closedby="any" aria-labelledby="playersDialogTitle">
+    <form method="dialog" class="p-5 space-y-4">
+      <div class="flex items-start justify-between gap-2 border-b border-emerald-800/60 pb-3">
+        <div>
+          <h2 id="playersDialogTitle" class="text-base font-bold text-white flex items-center gap-2">
+            <span>👥</span> Integrantes de Los Golfos del Jueves
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Edita los nombres de tus amigos o agrega más jugadores al grupo.
+          </p>
+        </div>
+        <button type="submit" class="text-slate-400 hover:text-white text-sm px-2 py-1 rounded-lg">✕</button>
+      </div>
+
+      <div id="playersEditorList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="flex gap-2">
+        <input id="newPlayerNameInput" type="text" placeholder="Nombre de otro amigo..." class="flex-1 bg-[#071712] border border-emerald-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400" />
+        <button id="addPlayerBtn" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs">
+          + Agregar
+        </button>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-emerald-800/60">
+        <button type="submit" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs">
+          Listo
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    // Register Service Worker for offline PWA use on course
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+
+    // Fallback for browsers without <dialog closedby="any"> support (modern-web-guidance: light-dismiss-a-dialog)
+    document.querySelectorAll('dialog[closedby="any"]').forEach((dialog) => {
+      if (!('closedBy' in HTMLDialogElement.prototype)) {
+        dialog.addEventListener('click', (event) => {
+          if (event.target !== dialog) return;
+          const rect = dialog.getBoundingClientRect();
+          const isDialogContent = (
+            rect.top <= event.clientY &&
+            event.clientY <= rect.top + rect.height &&
+            rect.left <= event.clientX &&
+            event.clientX <= rect.left + rect.width
+          );
+          if (isDialogContent) return;
+          dialog.close();
+        });
+      }
+    });
+
+    const STORAGE_KEY = 'los_golfos_del_jueves_state_v1';
+
+    const DEFAULT_RULES = {
+      holeWin: 2,
+      par: 1,
+      birdie: 3,
+      eagle: 5,
+      oyes: 2,
+      holeOut: 3,
+      holeInOne: 10,
+      carryover: false,
+      pointValue: 50
+    };
+
+    const DEFAULT_PARS = [4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 5, 3, 4, 4];
+
+    function createEmptyHoles() {
+      const holes = {};
+      for (let h = 1; h <= 18; h++) {
+        holes[h] = {
+          par: DEFAULT_PARS[h - 1],
+          manualWinnerId: null, // null = auto by lowest strokes, 'tie' = forced tie, or playerId
+          scores: {} // playerId -> { strokes: null, oyes: false, holeOut: false, manualPar: null, manualBirdie: null, manualHIO: null, extraPts: 0 }
+        };
+      }
+      return holes;
+    }
+
+    function createInitialState() {
+      const defaultPlayers = [
+        { id: 'p1', name: 'Paulo' },
+        { id: 'p2', name: 'Amigo 2' },
+        { id: 'p3', name: 'Amigo 3' },
+        { id: 'p4', name: 'Amigo 4' }
+      ];
+      return {
+        courseName: 'Club de Golf · Jueves de Ronda',
+        currentHole: 1,
+        rules: { ...DEFAULT_RULES },
+        players: defaultPlayers,
+        holes: createEmptyHoles()
+      };
+    }
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return createInitialState();
+        const parsed = JSON.parse(raw);
+        return {
+          ...createInitialState(),
+          ...parsed,
+          rules: { ...DEFAULT_RULES, ...(parsed.rules || {}) }
+        };
+      } catch (e) {
+        return createInitialState();
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function getPlayerHoleData(holeNum, playerId) {
+      const hole = state.holes[holeNum];
+      if (!hole.scores[playerId]) {
+        hole.scores[playerId] = {
+          strokes: null,
+          oyes: false,
+          holeOut: false,
+          extraPts: 0
+        };
+      }
+      return hole.scores[playerId];
+    }
+
+    // Calculate hole winners and points across all 18 holes (supporting optional carryover)
+    function computeFullRoundStats() {
+      const rules = state.rules;
+      const holeResults = {};
+      const playerTotals = {};
+
+      state.players.forEach((p) => {
+        playerTotals[p.id] = {
+          id: p.id,
+          name: p.name,
+          totalPoints: 0,
+          totalStrokes: 0,
+          strokesVsPar: 0,
+          holesPlayed: 0,
+          holesWon: 0,
+          pars: 0,
+          birdies: 0,
+          eagles: 0,
+          hios: 0,
+          oyesCount: 0,
+          holeOuts: 0
+        };
+      });
+
+      let carryBag = 0;
+
+      for (let h = 1; h <= 18; h++) {
+        const hole = state.holes[h];
+        const par = hole.par;
+
+        // Determine who played this hole
+        const activeEntries = state.players
+          .map((p) => ({ player: p, data: getPlayerHoleData(h, p.id) }))
+          .filter((item) => typeof item.data.strokes === 'number' && item.data.strokes > 0);
+
+        let winnerId = null;
+        let isTie = false;
+
+        if (hole.manualWinnerId === 'tie') {
+          winnerId = null;
+          isTie = activeEntries.length > 0;
+        } else if (hole.manualWinnerId && state.players.some((p) => p.id === hole.manualWinnerId)) {
+          winnerId = hole.manualWinnerId;
+        } else if (activeEntries.length > 0) {
+          const minStrokes = Math.min(...activeEntries.map((e) => e.data.strokes));
+          const bestPlayers = activeEntries.filter((e) => e.data.strokes === minStrokes);
+          if (bestPlayers.length === 1) {
+            winnerId = bestPlayers[0].player.id;
+          } else {
+            isTie = true;
+          }
+        }
+
+        const skinPot = rules.holeWin + (rules.carryover ? carryBag : 0);
+
+        if (activeEntries.length > 0) {
+          if (winnerId) {
+            carryBag = 0;
+          } else if (isTie && rules.carryover) {
+            carryBag += rules.holeWin;
+          }
+        }
+
+        const perPlayerHole = {};
+
+        state.players.forEach((p) => {
+          const d = getPlayerHoleData(h, p.id);
+          const strokes = d.strokes;
+          const hasStrokes = typeof strokes === 'number' && strokes > 0;
+
+          const isHIO = hasStrokes && strokes === 1;
+          const isEagle = hasStrokes && !isHIO && strokes <= par - 2;
+          const isBirdie = hasStrokes && !isHIO && strokes === par - 1;
+          const isPar = hasStrokes && strokes === par;
+          const wonHole = winnerId === p.id;
+
+          let pts = 0;
+          const badges = [];
+
+          if (wonHole) {
+            pts += skinPot;
+            badges.push({ label: `🏆 Hoyo (+${skinPot})`, type: 'win' });
+          }
+          if (isHIO) {
+            pts += rules.holeInOne;
+            badges.push({ label: `👑 Hole in One (+${rules.holeInOne})`, type: 'hio' });
+          }
+          if (isEagle) {
+            pts += rules.eagle;
+            badges.push({ label: `🦅 Águila (+${rules.eagle})`, type: 'eagle' });
+          }
+          if (isBirdie) {
+            pts += rules.birdie;
+            badges.push({ label: `🐦 Birdie (+${rules.birdie})`, type: 'birdie' });
+          }
+          if (isPar) {
+            pts += rules.par;
+            badges.push({ label: `⛳ Par (+${rules.par})`, type: 'par' });
+          }
+          if (d.oyes) {
+            pts += rules.oyes;
+            badges.push({ label: `🎯 O'yes (+${rules.oyes})`, type: 'oyes' });
+          }
+          if (d.holeOut) {
+            pts += rules.holeOut;
+            badges.push({ label: `💥 Hole Out (+${rules.holeOut})`, type: 'holeout' });
+          }
+          if (d.extraPts && d.extraPts !== 0) {
+            pts += d.extraPts;
+            badges.push({ label: `⚡ Extra (${d.extraPts > 0 ? '+' : ''}${d.extraPts})`, type: 'extra' });
+          }
+
+          perPlayerHole[p.id] = {
+            strokes,
+            hasStrokes,
+            isHIO,
+            isEagle,
+            isBirdie,
+            isPar,
+            wonHole,
+            oyes: d.oyes,
+            holeOut: d.holeOut,
+            extraPts: d.extraPts || 0,
+            points: pts,
+            badges
+          };
+
+          // Accumulate totals
+          const tot = playerTotals[p.id];
+          tot.totalPoints += pts;
+          if (hasStrokes) {
+            tot.totalStrokes += strokes;
+            tot.strokesVsPar += (strokes - par);
+            tot.holesPlayed += 1;
+          }
+          if (wonHole) tot.holesWon += 1;
+          if (isPar) tot.pars += 1;
+          if (isBirdie) tot.birdies += 1;
+          if (isEagle) tot.eagles += 1;
+          if (isHIO) tot.hios += 1;
+          if (d.oyes) tot.oyesCount += 1;
+          if (d.holeOut) tot.holeOuts += 1;
+        });
+
+        holeResults[h] = {
+          par,
+          winnerId,
+          isTie,
+          skinPot,
+          hasAnyScore: activeEntries.length > 0,
+          perPlayer: perPlayerHole
+        };
+      }
+
+      return { holeResults, playerTotals };
+    }
+
+    function formatVsPar(diff) {
+      if (diff === 0) return 'E';
+      return diff > 0 ? `+${diff}` : `${diff}`;
+    }
+
+    function renderAll() {
+      const stats = computeFullRoundStats();
+
+      document.getElementById('courseNameDisplay').textContent = state.courseName;
+      document.getElementById('playerCountBadge').textContent = state.players.length;
+      document.getElementById('pointValueInput').value = state.rules.pointValue;
+
+      // Count how many holes have at least one score
+      const playedHolesCount = Object.values(stats.holeResults).filter((h) => h.hasAnyScore).length;
+      document.getElementById('holesPlayedSummary').textContent = `${playedHolesCount} / 18 hoyos jugados`;
+
+      renderMiniLeaderboard(stats);
+      renderHoleStrip(stats);
+      renderCurrentHoleCapture(stats);
+      renderScorecardTab(stats);
+      renderHoyo19Tab(stats);
+    }
+
+    function renderMiniLeaderboard(stats) {
+      const sorted = Object.values(stats.playerTotals).sort((a, b) => {
+        if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+        return a.strokesVsPar - b.strokesVsPar;
+      });
+
+      const container = document.getElementById('miniLeaderboard');
+      container.innerHTML = sorted.map((p, idx) => {
+        const isLeader = idx === 0 && p.totalPoints > 0;
+        return `
+          <div class="rounded-xl p-2.5 border ${isLeader ? 'bg-emerald-950/90 border-amber-400/60' : 'bg-[#071712]/70 border-emerald-900/60'} flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1">
+                <span class="text-xs font-bold ${isLeader ? 'text-amber-300' : 'text-slate-400'}">#${idx + 1}</span>
+                <span class="text-xs sm:text-sm font-bold text-white truncate">${escapeHtml(p.name)}</span>
+              </div>
+              <div class="text-xs text-slate-400">
+                ${p.holesPlayed > 0 ? `${p.totalStrokes} golpes (${formatVsPar(p.strokesVsPar)})` : 'Sin golpes'}
+              </div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-sm sm:text-base font-extrabold ${isLeader ? 'text-amber-300' : 'text-emerald-300'}">${p.totalPoints} <span class="text-xs font-normal">pts</span></div>
+              <div class="text-xs text-slate-400">🏆 ${p.holesWon}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderHoleStrip(stats) {
+      const strip = document.getElementById('holeStrip');
+      let html = '';
+      for (let h = 1; h <= 18; h++) {
+        const hr = stats.holeResults[h];
+        const isCurrent = h === state.currentHole;
+        let statusClass = 'bg-[#071712] text-slate-400 border-emerald-900/70';
+        if (isCurrent) {
+          statusClass = 'bg-emerald-500 text-black font-extrabold border-emerald-300 shadow-md scale-105';
+        } else if (hr.winnerId) {
+          statusClass = 'bg-emerald-900/70 text-emerald-200 border-emerald-600/60';
+        } else if (hr.hasAnyScore) {
+          statusClass = 'bg-amber-500/20 text-amber-200 border-amber-500/40';
+        }
+
+        html += `
+          <button type="button" data-hole="${h}" class="hole-pill shrink-0 w-10 h-11 rounded-xl border text-xs flex flex-col items-center justify-center transition ${statusClass}">
+            <span>H${h}</span>
+            <span class="text-[11px] opacity-80">P${hr.par}</span>
+          </button>
+        `;
+      }
+      strip.innerHTML = html;
+
+      strip.querySelectorAll('.hole-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.currentHole = Number(btn.dataset.hole);
+          saveState();
+          renderAll();
+        });
+      });
+
+      document.getElementById('prevHoleBtn').disabled = state.currentHole <= 1;
+      document.getElementById('nextHoleBtn').disabled = state.currentHole >= 18;
+    }
+
+    function renderCurrentHoleCapture(stats) {
+      const h = state.currentHole;
+      const hole = state.holes[h];
+      const hr = stats.holeResults[h];
+
+      document.getElementById('currentHoleTitle').textContent = `Hoyo ${h}`;
+
+      const carryBadge = document.getElementById('carryoverBadge');
+      if (state.rules.carryover && hr.skinPot > state.rules.holeWin) {
+        carryBadge.textContent = `🔥 Hoyo vale ${hr.skinPot} pts (Acumulado)`;
+        carryBadge.classList.remove('hidden');
+      } else {
+        carryBadge.classList.add('hidden');
+      }
+
+      // Par buttons
+      document.querySelectorAll('.par-btn').forEach((btn) => {
+        const parVal = Number(btn.dataset.par);
+        if (parVal === hole.par) {
+          btn.className = 'par-btn px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-black shadow';
+        } else {
+          btn.className = 'par-btn px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white';
+        }
+      });
+
+      // Winner summary text
+      const winnerSummary = document.getElementById('holeWinnerSummary');
+      if (hr.winnerId) {
+        const wPlayer = state.players.find((p) => p.id === hr.winnerId);
+        const modeLabel = hole.manualWinnerId ? 'Manual' : 'Automático por menor score';
+        winnerSummary.textContent = `${wPlayer ? wPlayer.name : ''} (+${hr.skinPot} pts · ${modeLabel})`;
+        winnerSummary.className = 'font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-lg border border-amber-500/40';
+      } else if (hr.isTie) {
+        winnerSummary.textContent = state.rules.carryover
+          ? 'Empate en golpes (Se acumula al siguiente hoyo o elige ganador abajo)'
+          : 'Empate en menor score (Toca "🏆 Ganó Hoyo" si hubo desempate)';
+        winnerSummary.className = 'font-semibold text-slate-200 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-800';
+      } else {
+        winnerSummary.textContent = 'Registra los golpes o selecciona quién ganó el hoyo';
+        winnerSummary.className = 'font-medium text-slate-400 bg-emerald-950/90 px-2.5 py-1 rounded-lg border border-emerald-800';
+      }
+
+      // Render player cards
+      const container = document.getElementById('playerHoleCards');
+      container.innerHTML = state.players.map((p) => {
+        const pStats = hr.perPlayer[p.id];
+        const strokes = pStats.strokes;
+        const diff = pStats.hasStrokes ? strokes - hole.par : null;
+
+        let scoreColor = 'text-white';
+        if (pStats.isHIO || pStats.isEagle) scoreColor = 'text-amber-300';
+        else if (pStats.isBirdie) scoreColor = 'text-sky-300';
+        else if (pStats.isPar) scoreColor = 'text-emerald-300';
+        else if (diff !== null && diff > 0) scoreColor = 'text-slate-200';
+
+        return `
+          <div class="rounded-2xl p-4 border transition ${pStats.wonHole ? 'bg-gradient-to-r from-[#12382b] to-[#0d261e] border-amber-400/70 shadow-lg' : 'bg-[#0d261e] border-emerald-900/80'}">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <!-- Player Name & Automatic Badges -->
+              <div class="min-w-[140px]">
+                <div class="flex items-center gap-2">
+                  <span class="text-base font-extrabold text-white">${escapeHtml(p.name)}</span>
+                  <span class="text-xs font-bold px-2.5 py-0.5 rounded-full ${pStats.points > 0 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-400'}">
+                    +${pStats.points} pts en H${h}
+                  </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5 mt-1.5">
+                  ${pStats.badges.length > 0
+                    ? pStats.badges.map((b) => `<span class="text-xs px-2 py-0.5 rounded-md bg-[#071712] border border-emerald-800/80 text-emerald-200 font-medium">${b.label}</span>`).join('')
+                    : `<span class="text-xs text-slate-400">Sin puntos en este hoyo</span>`
+                  }
+                </div>
+              </div>
+
+              <!-- Strokes Counter -->
+              <div class="flex items-center gap-2 bg-[#071712] p-1.5 rounded-2xl border border-emerald-800/80">
+                <button type="button" data-action="dec-stroke" data-player="${p.id}" aria-label="Menos un golpe para ${escapeHtml(p.name)}" class="w-10 h-10 rounded-xl bg-emerald-950 hover:bg-emerald-900 active:scale-95 text-lg font-bold text-emerald-200 flex items-center justify-center transition">
+                  −
+                </button>
+                <div class="w-16 text-center">
+                  <div class="text-xl font-black leading-none ${scoreColor}">
+                    ${pStats.hasStrokes ? strokes : '—'}
+                  </div>
+                  <div class="text-xs text-slate-400 mt-0.5">
+                    ${pStats.hasStrokes ? `Golpes (${formatVsPar(diff)})` : 'Golpes'}
+                  </div>
+                </div>
+                <button type="button" data-action="inc-stroke" data-player="${p.id}" aria-label="Más un golpe para ${escapeHtml(p.name)}" class="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-lg font-bold text-black flex items-center justify-center transition">
+                  +
+                </button>
+                <button type="button" data-action="set-par" data-player="${p.id}" class="px-2.5 h-10 rounded-xl bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-700/50 text-xs font-bold text-emerald-300">
+                  Par (${hole.par})
+                </button>
+              </div>
+            </div>
+
+            <!-- Action Pills: Ganó Hoyo, O'yes, Hole Out, Hole in One (1 golpe), Extra Points -->
+            <div class="mt-3 pt-3 border-t border-emerald-900/60 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" data-action="toggle-winner" data-player="${p.id}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${pStats.wonHole ? 'bg-amber-400 text-black border-amber-300 shadow' : 'bg-[#071712] text-slate-300 border-emerald-800/80 hover:border-amber-400/50'}">
+                  <span>🏆</span>
+                  <span>Ganó Hoyo</span>
+                </button>
+
+                <button type="button" data-action="toggle-oyes" data-player="${p.id}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${pStats.oyes ? 'bg-emerald-400 text-black border-emerald-300 shadow' : 'bg-[#071712] text-slate-300 border-emerald-800/80 hover:border-emerald-400/50'}">
+                  <span>🎯</span>
+                  <span>O'yes (+${state.rules.oyes})</span>
+                </button>
+
+                <button type="button" data-action="toggle-holeout" data-player="${p.id}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${pStats.holeOut ? 'bg-rose-400 text-black border-rose-300 shadow' : 'bg-[#071712] text-slate-300 border-emerald-800/80 hover:border-rose-400/50'}">
+                  <span>💥</span>
+                  <span>Hole Out (+${state.rules.holeOut})</span>
+                </button>
+
+                <button type="button" data-action="set-hio" data-player="${p.id}" class="px-3 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 ${pStats.isHIO ? 'bg-amber-300 text-black border-amber-200 shadow' : 'bg-[#071712] text-amber-300/90 border-amber-500/30 hover:border-amber-400'}">
+                  <span>👑</span>
+                  <span>Hole in One</span>
+                </button>
+              </div>
+
+              <!-- Quick manual extra points adjuster -->
+              <div class="flex items-center gap-1 bg-[#071712] px-2 py-1 rounded-xl border border-emerald-900/70">
+                <span class="text-xs text-slate-400 mr-1">Pts Extra:</span>
+                <button type="button" data-action="extra-dec" data-player="${p.id}" class="w-6 h-6 rounded-lg bg-emerald-950 text-xs font-bold text-slate-200 hover:bg-emerald-900">−</button>
+                <span class="text-xs font-bold w-6 text-center ${pStats.extraPts !== 0 ? 'text-amber-300' : 'text-slate-400'}">${pStats.extraPts > 0 ? `+${pStats.extraPts}` : pStats.extraPts}</span>
+                <button type="button" data-action="extra-inc" data-player="${p.id}" class="w-6 h-6 rounded-lg bg-emerald-950 text-xs font-bold text-slate-200 hover:bg-emerald-900">+</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach listeners for player card actions
+      container.querySelectorAll('button[data-action]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          const playerId = btn.dataset.player;
+          const d = getPlayerHoleData(h, playerId);
+
+          if (action === 'inc-stroke') {
+            d.strokes = d.strokes === null ? hole.par : d.strokes + 1;
+          } else if (action === 'dec-stroke') {
+            if (d.strokes === null) d.strokes = hole.par - 1;
+            else if (d.strokes > 1) d.strokes -= 1;
+            else d.strokes = null;
+          } else if (action === 'set-par') {
+            d.strokes = hole.par;
+          } else if (action === 'toggle-oyes') {
+            d.oyes = !d.oyes;
+          } else if (action === 'toggle-holeout') {
+            d.holeOut = !d.holeOut;
+          } else if (action === 'set-hio') {
+            d.strokes = d.strokes === 1 ? hole.par : 1;
+          } else if (action === 'toggle-winner') {
+            if (hr.winnerId === playerId) {
+              hole.manualWinnerId = 'tie';
+            } else {
+              hole.manualWinnerId = playerId;
+            }
+          } else if (action === 'extra-inc') {
+            d.extraPts = (d.extraPts || 0) + 1;
+          } else if (action === 'extra-dec') {
+            d.extraPts = (d.extraPts || 0) - 1;
+          }
+
+          // If strokes changed and manualWinnerId was 'tie', reset to auto
+          if (['inc-stroke', 'dec-stroke', 'set-par', 'set-hio'].includes(action) && hole.manualWinnerId === 'tie') {
+            hole.manualWinnerId = null;
+          }
+
+          saveState();
+          renderAll();
+        });
+      });
+    }
+
+    function renderScorecardTab(stats) {
+      const sorted = Object.values(stats.playerTotals).sort((a, b) => b.totalPoints - a.totalPoints);
+      const tbody = document.getElementById('summaryTableBody');
+
+      tbody.innerHTML = sorted.map((p, i) => `
+        <tr>
+          <th>
+            <div class="flex items-center gap-2">
+              <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-950 text-emerald-300 border border-emerald-800">#${i + 1}</span>
+              <span>${escapeHtml(p.name)}</span>
+            </div>
+          </th>
+          <td class="font-extrabold text-amber-300 text-base">${p.totalPoints} pts</td>
+          <td>${p.holesPlayed > 0 ? `${p.totalStrokes} (${formatVsPar(p.strokesVsPar)})` : '—'}</td>
+          <td class="font-bold text-emerald-300">${p.holesWon}</td>
+          <td>
+            <span class="inline-flex items-center gap-2 text-xs">
+              <span>⛳ ${p.pars}</span>
+              <span>🐦 ${p.birdies + p.eagles}</span>
+              <span>👑 ${p.hios}</span>
+            </span>
+          </td>
+          <td>
+            <span class="inline-flex items-center gap-2 text-xs">
+              <span>🎯 ${p.oyesCount}</span>
+              <span>💥 ${p.holeOuts}</span>
+            </span>
+          </td>
+        </tr>
+      `).join('');
+
+      // Hole-by-hole matrix
+      const mHead = document.getElementById('matrixTableHead');
+      const mBody = document.getElementById('matrixTableBody');
+
+      let headHtml = '<tr><th>Jugador</th>';
+      for (let h = 1; h <= 18; h++) {
+        headHtml += `<th><button type="button" data-goto-hole="${h}" class="underline hover:text-emerald-300">H${h}<div class="text-xs font-normal text-slate-400">P${state.holes[h].par}</div></button></th>`;
+      }
+      headHtml += '<th>Total</th></tr>';
+      mHead.innerHTML = headHtml;
+
+      mBody.innerHTML = state.players.map((p) => {
+        const tot = stats.playerTotals[p.id];
+        let row = `<tr><th>${escapeHtml(p.name)}</th>`;
+        for (let h = 1; h <= 18; h++) {
+          const ph = stats.holeResults[h].perPlayer[p.id];
+          const strokeText = ph.hasStrokes ? ph.strokes : '·';
+          const ptText = ph.points > 0 ? `+${ph.points}` : '';
+          row += `
+            <td class="${ph.wonHole ? 'bg-amber-500/15' : ''}">
+              <div class="font-bold ${ph.isBirdie || ph.isEagle || ph.isHIO ? 'text-sky-300' : 'text-white'}">${strokeText}</div>
+              <div class="text-xs text-emerald-400 font-semibold">${ptText}</div>
+            </td>
+          `;
+        }
+        row += `<td class="font-extrabold text-amber-300">${tot.totalPoints} pts<div class="text-xs text-slate-400">${tot.totalStrokes} glp</div></td></tr>`;
+        return row;
+      }).join('');
+
+      mHead.querySelectorAll('button[data-goto-hole]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.currentHole = Number(btn.dataset.gotoHole);
+          saveState();
+          switchTab('capture');
+          renderAll();
+        });
+      });
+    }
+
+    function renderHoyo19Tab(stats) {
+      const sorted = Object.values(stats.playerTotals).sort((a, b) => b.totalPoints - a.totalPoints);
+      const leader = sorted[0];
+      const bestOyes = [...sorted].sort((a, b) => b.oyesCount - a.oyesCount)[0];
+      const bestStrokes = [...sorted].filter((p) => p.holesPlayed > 0).sort((a, b) => a.strokesVsPar - b.strokesVsPar)[0];
+
+      document.getElementById('hoyo19Awards').innerHTML = `
+        <div class="bg-[#071712] border border-amber-500/40 rounded-xl p-3">
+          <div class="text-xs text-amber-300 font-semibold">👑 Campeón del Jueves (Puntos)</div>
+          <div class="text-base font-extrabold text-white mt-0.5">${leader && leader.totalPoints > 0 ? escapeHtml(leader.name) : 'Por definir'}</div>
+          <div class="text-xs text-slate-400">${leader ? `${leader.totalPoints} puntos (${leader.holesWon} hoyos ganados)` : ''}</div>
+        </div>
+        <div class="bg-[#071712] border border-emerald-800/70 rounded-xl p-3">
+          <div class="text-xs text-emerald-300 font-semibold">🎯 Rey del O'yes &amp; Hole Out</div>
+          <div class="text-base font-extrabold text-white mt-0.5">${bestOyes && (bestOyes.oyesCount + bestOyes.holeOuts) > 0 ? escapeHtml(bestOyes.name) : 'Sin O\'yes aún'}</div>
+          <div class="text-xs text-slate-400">${bestOyes ? `${bestOyes.oyesCount} O'yes · ${bestOyes.holeOuts} Hole Outs` : ''}</div>
+        </div>
+        <div class="bg-[#071712] border border-sky-800/70 rounded-xl p-3">
+          <div class="text-xs text-sky-300 font-semibold">🏌️‍♂️ Menor Score de Golpes</div>
+          <div class="text-base font-extrabold text-white mt-0.5">${bestStrokes ? escapeHtml(bestStrokes.name) : 'Sin golpes aún'}</div>
+          <div class="text-xs text-slate-400">${bestStrokes ? `${bestStrokes.totalStrokes} golpes (${formatVsPar(bestStrokes.strokesVsPar)})` : ''}</div>
+        </div>
+      `;
+
+      // Settlement vs Leader
+      const valPerPoint = Number(state.rules.pointValue) || 0;
+      const settlementEl = document.getElementById('settlementList');
+      if (!leader || leader.totalPoints === 0) {
+        settlementEl.innerHTML = `<p class="text-xs text-slate-400">Anota puntos en los hoyos para calcular la liquidación del Hoyo 19.</p>`;
+      } else {
+        settlementEl.innerHTML = sorted.map((p, idx) => {
+          const diffPts = leader.totalPoints - p.totalPoints;
+          const owed = diffPts * valPerPoint;
+          if (idx === 0) {
+            return `
+              <div class="flex items-center justify-between py-1.5 border-b border-emerald-900/50 text-amber-300 font-bold">
+                <span>🥇 ${escapeHtml(p.name)} (${p.totalPoints} pts)</span>
+                <span>Líder de la ronda 🏆</span>
+              </div>
+            `;
+          }
+          return `
+            <div class="flex items-center justify-between py-1.5 border-b border-emerald-900/50">
+              <span class="text-slate-200 font-medium">${escapeHtml(p.name)} (${p.totalPoints} pts · a ${diffPts} pts del líder)</span>
+              <span class="font-bold text-emerald-300">Diferencia vs Líder: $${owed.toLocaleString('es-MX')}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Build WhatsApp summary text
+      const lines = [
+        `⛳ *LOS GOLFOS DEL JUEVES* 🍻`,
+        `📍 ${state.courseName}`,
+        `────────────────────`,
+        `🏆 *TABLA DE PUNTOS:*`
+      ];
+
+      sorted.forEach((p, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '🏌️‍♂️';
+        const strokesInfo = p.holesPlayed > 0 ? `${p.totalStrokes} golpes (${formatVsPar(p.strokesVsPar)})` : 's/g';
+        lines.push(
+          `${medal} *${p.name}*: *${p.totalPoints} pts* | ${strokesInfo} | 🏆${p.holesWon} ⛳${p.pars} 🐦${p.birdies + p.eagles} 🎯${p.oyesCount} 💥${p.holeOuts} 👑${p.hios}`
+        );
+      });
+
+      if (leader && leader.totalPoints > 0 && valPerPoint > 0) {
+        lines.push(`────────────────────`);
+        lines.push(`💵 *HOYO 19 ($${valPerPoint}/pt vs Líder ${leader.name}):*`);
+        sorted.slice(1).forEach((p) => {
+          const diff = leader.totalPoints - p.totalPoints;
+          lines.push(`• ${p.name}: -${diff} pts ($${(diff * valPerPoint).toLocaleString('es-MX')})`);
+        });
+      }
+
+      document.getElementById('whatsappPreview').value = lines.join('\n');
+    }
+
+    function switchTab(tabId) {
+      ['capture', 'scorecard', 'hoyo19'].forEach((id) => {
+        document.getElementById(`tab-${id}`).classList.toggle('hidden', id !== tabId);
+      });
+      document.querySelectorAll('.tab-btn').forEach((btn) => {
+        const active = btn.dataset.tab === tabId;
+        btn.className = active
+          ? 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow'
+          : 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white';
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Event bindings
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    document.getElementById('prevHoleBtn').addEventListener('click', () => {
+      if (state.currentHole > 1) {
+        state.currentHole -= 1;
+        saveState();
+        renderAll();
+      }
+    });
+
+    document.getElementById('nextHoleBtn').addEventListener('click', () => {
+      if (state.currentHole < 18) {
+        state.currentHole += 1;
+        saveState();
+        renderAll();
+      }
+    });
+
+    document.querySelectorAll('.par-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.holes[state.currentHole].par = Number(btn.dataset.par);
+        saveState();
+        renderAll();
+      });
+    });
+
+    document.getElementById('clearHoleBtn').addEventListener('click', () => {
+      const h = state.currentHole;
+      state.holes[h].manualWinnerId = null;
+      state.holes[h].scores = {};
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById('courseNameBtn').addEventListener('click', () => {
+      const next = prompt('Nombre del campo o ronda del jueves:', state.courseName);
+      if (next && next.trim()) {
+        state.courseName = next.trim();
+        saveState();
+        renderAll();
+      }
+    });
+
+    // Points Dialog
+    const pointsDialog = document.getElementById('pointsDialog');
+    document.getElementById('openPointsBtn').addEventListener('click', () => {
+      document.getElementById('rule_holeWin').value = state.rules.holeWin;
+      document.getElementById('rule_par').value = state.rules.par;
+      document.getElementById('rule_birdie').value = state.rules.birdie;
+      document.getElementById('rule_eagle').value = state.rules.eagle;
+      document.getElementById('rule_oyes').value = state.rules.oyes;
+      document.getElementById('rule_holeOut').value = state.rules.holeOut;
+      document.getElementById('rule_holeInOne').value = state.rules.holeInOne;
+      document.getElementById('rule_carryover').checked = Boolean(state.rules.carryover);
+      pointsDialog.showModal();
+    });
+
+    document.getElementById('saveRulesBtn').addEventListener('click', () => {
+      state.rules.holeWin = Number(document.getElementById('rule_holeWin').value) || 0;
+      state.rules.par = Number(document.getElementById('rule_par').value) || 0;
+      state.rules.birdie = Number(document.getElementById('rule_birdie').value) || 0;
+      state.rules.eagle = Number(document.getElementById('rule_eagle').value) || 0;
+      state.rules.oyes = Number(document.getElementById('rule_oyes').value) || 0;
+      state.rules.holeOut = Number(document.getElementById('rule_holeOut').value) || 0;
+      state.rules.holeInOne = Number(document.getElementById('rule_holeInOne').value) || 0;
+      state.rules.carryover = document.getElementById('rule_carryover').checked;
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById('restoreDefaultRulesBtn').addEventListener('click', () => {
+      state.rules = { ...DEFAULT_RULES, pointValue: state.rules.pointValue };
+      document.getElementById('rule_holeWin').value = state.rules.holeWin;
+      document.getElementById('rule_par').value = state.rules.par;
+      document.getElementById('rule_birdie').value = state.rules.birdie;
+      document.getElementById('rule_eagle').value = state.rules.eagle;
+      document.getElementById('rule_oyes').value = state.rules.oyes;
+      document.getElementById('rule_holeOut').value = state.rules.holeOut;
+      document.getElementById('rule_holeInOne').value = state.rules.holeInOne;
+      document.getElementById('rule_carryover').checked = Boolean(state.rules.carryover);
+      saveState();
+      renderAll();
+    });
+
+    // Players Dialog
+    const playersDialog = document.getElementById('playersDialog');
+    function renderPlayersEditor() {
+      const list = document.getElementById('playersEditorList');
+      list.innerHTML = state.players.map((p, idx) => `
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-400 w-6">#${idx + 1}</span>
+          <input type="text" data-edit-player="${p.id}" value="${escapeHtml(p.name)}" class="flex-1 bg-[#071712] border border-emerald-800 rounded-xl px-3 py-1.5 text-xs text-white" />
+          ${state.players.length > 2 ? `<button type="button" data-remove-player="${p.id}" class="px-2.5 py-1.5 rounded-xl bg-rose-950/80 text-rose-300 text-xs font-bold">Quitar</button>` : ''}
+        </div>
+      `).join('');
+
+      list.querySelectorAll('input[data-edit-player]').forEach((inp) => {
+        inp.addEventListener('input', () => {
+          const pl = state.players.find((x) => x.id === inp.dataset.editPlayer);
+          if (pl && inp.value.trim()) {
+            pl.name = inp.value.trim();
+            saveState();
+            renderAll();
+          }
+        });
+      });
+
+      list.querySelectorAll('button[data-remove-player]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (state.players.length <= 2) return;
+          state.players = state.players.filter((x) => x.id !== btn.dataset.removePlayer);
+          saveState();
+          renderPlayersEditor();
+          renderAll();
+        });
+      });
+    }
+
+    document.getElementById('openPlayersBtn').addEventListener('click', () => {
+      renderPlayersEditor();
+      playersDialog.showModal();
+    });
+
+    document.getElementById('addPlayerBtn').addEventListener('click', () => {
+      const inp = document.getElementById('newPlayerNameInput');
+      const name = inp.value.trim();
+      if (!name) return;
+      state.players.push({ id: 'p_' + Date.now(), name });
+      inp.value = '';
+      saveState();
+      renderPlayersEditor();
+      renderAll();
+    });
+
+    document.getElementById('pointValueInput').addEventListener('input', (e) => {
+      state.rules.pointValue = Number(e.target.value) || 0;
+      saveState();
+      renderAll();
+    });
+
+    document.getElementById('copyWhatsappBtn').addEventListener('click', () => {
+      const text = document.getElementById('whatsappPreview').value;
+      navigator.clipboard.writeText(text).then(() => {
+        const label = document.getElementById('copyBtnText');
+        label.textContent = '¡Copiado al portapapeles!';
+        setTimeout(() => {
+          label.textContent = 'Copiar Resumen WhatsApp';
+        }, 2000);
+      });
+    });
+
+    document.getElementById('resetRoundBtn').addEventListener('click', () => {
+      if (confirm('¿Iniciar una nueva ronda limpia para Los Golfos del Jueves? Se conservarán los nombres y tus reglas de puntos.')) {
+        state.holes = createEmptyHoles();
+        state.currentHole = 1;
+        saveState();
+        renderAll();
+      }
+    });
+
+    document.getElementById('loadDemoBtn').addEventListener('click', () => {
+      state.holes = createEmptyHoles();
+      const [p1, p2, p3, p4] = state.players;
+      if (p1 && p2) {
+        // Hole 1 (Par 4): p1 makes Birdie (3) + wins hole, p2 makes Par (4)
+        state.holes[1].scores[p1.id] = { strokes: 3, oyes: false, holeOut: false, extraPts: 0 };
+        state.holes[1].scores[p2.id] = { strokes: 4, oyes: false, holeOut: false, extraPts: 0 };
+        if (p3) state.holes[1].scores[p3.id] = { strokes: 5, oyes: false, holeOut: false, extraPts: 0 };
+        if (p4) state.holes[1].scores[p4.id] = { strokes: 5, oyes: false, holeOut: false, extraPts: 0 };
+
+        // Hole 2 (Par 4): p2 makes Par + Hole Out from bunker!
+        state.holes[2].scores[p1.id] = { strokes: 5, oyes: false, holeOut: false, extraPts: 0 };
+        state.holes[2].scores[p2.id] = { strokes: 4, oyes: false, holeOut: true, extraPts: 0 };
+        if (p3) state.holes[2].scores[p3.id] = { strokes: 4, oyes: false, holeOut: false, extraPts: 0 };
+        if (p4) state.holes[2].scores[p4.id] = { strokes: 6, oyes: false, holeOut: false, extraPts: 0 };
+
+        // Hole 3 (Par 3): O'yes + Birdie
+        state.holes[3].scores[p1.id] = { strokes: 2, oyes: true, holeOut: false, extraPts: 0 };
+        state.holes[3].scores[p2.id] = { strokes: 3, oyes: false, holeOut: false, extraPts: 0 };
+        if (p3) state.holes[3].scores[p3.id] = { strokes: 3, oyes: false, holeOut: false, extraPts: 0 };
+        if (p4) state.holes[3].scores[p4.id] = { strokes: 4, oyes: false, holeOut: false, extraPts: 0 };
+      }
+      state.currentHole = 3;
+      saveState();
+      renderAll();
+    });
+
+    // Load initial demo on very first visit if no scores exist yet so user sees it working right away
+    const hasAnySavedScore = Object.values(state.holes).some((h) => Object.keys(h.scores || {}).length > 0);
+    if (!hasAnySavedScore) {
+      document.getElementById('loadDemoBtn').click();
+      state.currentHole = 1;
+      saveState();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>
