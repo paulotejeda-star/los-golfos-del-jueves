@@ -150,10 +150,15 @@
     bag.forEach((c) => { if (c.m !== c.est) out[c.name] = c.m; });
     try { localStorage.setItem(BAG_KEY, JSON.stringify(out)); } catch (e) { /* sin almacenamiento: queda en memoria */ }
   }
-  // El palo más corto que llega (si dudas entre dos, ya es el largo: "un palo más")
+  // Un palo más: el más corto que llega y luego el siguiente más largo, porque tu
+  // fallo es quedarte corto. Tope en el Hierro 4: las maderas no son para tirar a green.
   function clubFor(dist) {
     const byLen = [...bag].sort((a, b) => a.m - b.m);
-    return byLen.find((c) => c.m >= dist) || byLen[byLen.length - 1];
+    const i = byLen.findIndex((c) => c.m >= dist);
+    if (i < 0) return byLen[byLen.length - 1];
+    const cap = byLen.findIndex((c) => c.name === 'Hierro 4');
+    const up = Math.min(i + 1, byLen.length - 1);
+    return byLen[cap >= 0 && i <= cap ? Math.min(up, cap) : i];
   }
   function steadyClub() {
     return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
@@ -337,7 +342,7 @@
         </div>
         <div id="cdBag" class="space-y-1.5 mt-3"></div>
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
-          ? `Estimado con tus ${data.fullShots.n} golpes completos en Garmin: la mitad pasa de ${mYd(data.fullShots.p50)} y el 10% más largo llega a ${mYd(data.fullShots.p90)} (así se calculó el Hierro 4) y tu tiro más largo fue de ${mYd(data.fullShots.max)} (el Driver). El reloj no tiene marcado qué palo usaste, así que ajusta cada uno con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
+          ? `Estimado con tus ${data.fullShots.n} golpes completos en Garmin: la mitad pasa de ${mYd(data.fullShots.p50)} y el 10% más largo llega a ${mYd(data.fullShots.p90)} (así se calculó el Hierro 4) y tu tiro más largo fue de ${mYd(data.fullShots.max)} (el Driver). Los demás palos siguen la escalera de la tabla de distancias por palo, ajustada a tu golpe. El plan ya te da un palo más del que llega, porque tu fallo es quedarte corto. El reloj no tiene marcado qué palo usaste, así que ajusta cada uno con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
           : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
       </div>
 
@@ -443,7 +448,7 @@
               </div>
             </li>`).join('')}
         </ol>
-        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Dos golpes con el palo que más derecho te sale y el tercero al green.' : 'Si dudas entre dos palos, toma el más largo.'} Las distancias de cada palo están en «Tu bolsa».</p>
+        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Dos golpes con el palo que más derecho te sale y el tercero al green.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
       </div>`;
   }
 

@@ -185,7 +185,7 @@ def main():
 
     # Bolsa: distancia de cada palo. Si el reloj trae el palo marcado (3 tiros o más)
     # se usa la mediana real; si no, se estima: el palo más largo = el 10% más largo
-    # de tus tiros completos y de ahí bajan en escalones parejos hasta el SW (50 m).
+    # de tus tiros completos; los demás siguen la escalera de la tabla (ver LADDER).
     # Bolsa real de Paulo (15-nov-2026). En Garmin varios palos están retirados, así
     # que la lista manda aquí; el segundo valor liga el palo con su tipo en Garmin
     # para usar la distancia real cuando el reloj traiga el palo marcado.
@@ -197,12 +197,15 @@ def main():
     fs = sorted(full_shots)
     top = fs[int(0.9 * (len(fs) - 1))] if fs else 110   # hierro 4: el 10% más largo de tus tiros
     longest = fs[-1] if fs else 140                     # driver: tu tiro más largo
-    low = 45                                            # sand 56°
-    irons = [b for b in BAG if b[0] not in ("Driver", "Madera 3")]
-    step = (top - low) / max(len(irons) - 1, 1)
+    # Escalera de distancias de la tabla de referencia (Golfers Stone) que mandó Paulo,
+    # escalada a su golpe: Hierro 4 = el 10% más largo de sus tiros, y los demás
+    # guardan la misma proporción que en la tabla. Los wedges que la tabla no trae
+    # (AW, 52° y 56°) se intercalan entre el PW (101 m) y el SW de 54° (73 m).
+    LADDER = {"Hierro 4": 165, "Hierro 5": 155, "Hierro 6": 146, "Hierro 7": 137, "Hierro 8": 128,
+              "Hierro 9": 119, "PW": 101, "AW": 90, "Sand 52°": 80, "Sand 56°": 70}
+    scale = top / LADDER["Hierro 4"]
     est = {"Driver": longest, "Madera 3": (longest + top) / 2}
-    for k, (name, _) in enumerate(irons):
-        est[name] = top - step * k
+    est.update({name: ref * scale for name, ref in LADDER.items()})
     clubs = []
     for name, gtype in BAG:
         real = club_shots.get(garmin_ids.get(gtype), []) if gtype else []

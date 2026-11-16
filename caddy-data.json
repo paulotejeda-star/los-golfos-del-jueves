@@ -1,6 +1,6 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-16T01:46+00:00",
+ "updated": "2026-11-16T02:51+00:00",
  "handicap": 48.17,
  "courseHandicap18": 27,
  "rounds": [
@@ -281,47 +281,47 @@
   },
   {
    "name": "Hierro 5",
-   "m": 105,
+   "m": 106,
    "source": "estimado"
   },
   {
    "name": "Hierro 6",
-   "m": 98,
+   "m": 100,
    "source": "estimado"
   },
   {
    "name": "Hierro 7",
-   "m": 90,
+   "m": 94,
    "source": "estimado"
   },
   {
    "name": "Hierro 8",
-   "m": 83,
+   "m": 88,
    "source": "estimado"
   },
   {
    "name": "Hierro 9",
-   "m": 75,
+   "m": 81,
    "source": "estimado"
   },
   {
    "name": "PW",
-   "m": 68,
+   "m": 69,
    "source": "estimado"
   },
   {
    "name": "AW",
-   "m": 60,
+   "m": 62,
    "source": "estimado"
   },
   {
    "name": "Sand 52°",
-   "m": 53,
+   "m": 55,
    "source": "estimado"
   },
   {
    "name": "Sand 56°",
-   "m": 45,
+   "m": 48,
    "source": "estimado"
   }
  ],
