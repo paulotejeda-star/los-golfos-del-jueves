@@ -12,6 +12,8 @@
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/caddy.css" />
+  <script src="/caddy.js" defer></script>
   <style>
     :root {
       --bg-main: #071712;
@@ -223,7 +225,7 @@
     </section>
 
     <!-- Navigation Tabs -->
-    <nav aria-label="Vistas principales" class="grid grid-cols-3 gap-1.5 bg-[#0d261e] p-1.5 rounded-xl border border-emerald-900/70">
+    <nav aria-label="Vistas principales" class="grid grid-cols-4 gap-1.5 bg-[#0d261e] p-1.5 rounded-xl border border-emerald-900/70">
       <button type="button" data-tab="capture" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
         <span>🏌️‍♂️</span>
         <span>Hoyo x Hoyo</span>
@@ -235,6 +237,10 @@
       <button type="button" data-tab="hoyo19" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
         <span>🍻</span>
         <span>Hoyo 19</span>
+      </button>
+      <button type="button" data-tab="caddy" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
+        <span>🎯</span>
+        <span>Caddy PTC</span>
       </button>
     </nav>
 
@@ -408,6 +414,8 @@
       </div>
     </section>
 
+    <!-- TAB 4: CADDY PTC (estrategia con datos de Garmin; lo pinta caddy.js) -->
+    <section id="tab-caddy" class="hidden space-y-4" aria-label="Caddy PTC"></section>
   </main>
 
   <!-- DIALOG 1: CUSTOMIZE POINTS RULES (Uses closedby="any" + JS Fallback) -->
@@ -1196,7 +1204,7 @@
     }
 
     function switchTab(tabId) {
-      ['capture', 'scorecard', 'hoyo19'].forEach((id) => {
+      ['capture', 'scorecard', 'hoyo19', 'caddy'].forEach((id) => {
         document.getElementById(`tab-${id}`).classList.toggle('hidden', id !== tabId);
       });
       document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -1205,6 +1213,7 @@
           ? 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow'
           : 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white';
       });
+      if (tabId === 'caddy' && window.CaddyPTC) window.CaddyPTC.show();
     }
 
     function escapeHtml(str) {

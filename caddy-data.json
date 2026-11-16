@@ -1,0 +1,267 @@
+{
+ "player": "Paulo Tejeda C",
+ "updated": "2026-11-16T01:33+00:00",
+ "handicap": 48.17,
+ "courseHandicap18": 27,
+ "rounds": [
+  {
+   "date": "2026-10-06",
+   "holes": 12,
+   "strokes": 53,
+   "par": 39,
+   "overPerHole": 1.17,
+   "longest": 145
+  },
+  {
+   "date": "2026-10-29",
+   "holes": 4,
+   "strokes": 16,
+   "par": 13,
+   "overPerHole": 0.75,
+   "longest": 132
+  },
+  {
+   "date": "2026-11-04",
+   "holes": 7,
+   "strokes": 37,
+   "par": 23,
+   "overPerHole": 2.0,
+   "longest": 115
+  },
+  {
+   "date": "2026-11-12",
+   "holes": 8,
+   "strokes": 41,
+   "par": 25,
+   "overPerHole": 2.0,
+   "longest": 108
+  },
+  {
+   "date": "2026-11-12",
+   "holes": 8,
+   "strokes": 44,
+   "par": 25,
+   "overPerHole": 2.38,
+   "longest": 96
+  },
+  {
+   "date": "2026-11-14",
+   "holes": 9,
+   "strokes": 51,
+   "par": 29,
+   "overPerHole": 2.44,
+   "longest": 120
+  },
+  {
+   "date": "2026-11-14",
+   "holes": 9,
+   "strokes": 51,
+   "par": 29,
+   "overPerHole": 2.44,
+   "longest": 96
+  }
+ ],
+ "numRounds": 7,
+ "holesWithShots": 53,
+ "course": {
+  "name": "La Huerta Golf & Hotel",
+  "city": "Zerezotla",
+  "par18": 58,
+  "rating18": 52.61,
+  "slope": 76
+ },
+ "personalPar9": 42,
+ "par9": 29,
+ "avg9": 51,
+ "fairway": {
+  "percentFairwayLeft": 22.22,
+  "percentFairwayRight": 44.44,
+  "percentFairwayHit": 33.33,
+  "percentGir": 0.0,
+  "puttsPerHole": 1.0
+ },
+ "strokesGained": [
+  {
+   "key": "DRIVE",
+   "name": "Salida",
+   "you": -0.68,
+   "group": -0.46,
+   "trend": "DOWN"
+  },
+  {
+   "key": "APPROACH",
+   "name": "Aproximación",
+   "you": -0.4,
+   "group": -0.48,
+   "trend": "EVEN"
+  },
+  {
+   "key": "CHIP",
+   "name": "Chip",
+   "you": -0.68,
+   "group": -0.51,
+   "trend": "EVEN"
+  },
+  {
+   "key": "PUTT",
+   "name": "Putt",
+   "you": null,
+   "group": -0.07,
+   "trend": "UNKNOWN"
+  },
+  {
+   "key": "BUNKER",
+   "name": "Bunker",
+   "you": -0.83,
+   "group": -0.43,
+   "trend": "UNKNOWN"
+  },
+  {
+   "key": "RECOVERY",
+   "name": "Recuperación",
+   "you": -0.41,
+   "group": -0.35,
+   "trend": "DOWN"
+  }
+ ],
+ "par3": {
+  "n": 42,
+  "avgStrokes": 4.9,
+  "holeLen": 83.0,
+  "teeDist": 70.0,
+  "leftToPin": 20.0,
+  "teeOnGreen": 10,
+  "teeRough": 25,
+  "teeBunker": 3,
+  "insideAvg": 3.5
+ },
+ "par4": {
+  "n": 11,
+  "avgStrokes": 6.09,
+  "holeLen": 215.0,
+  "teeDist": 71.0,
+  "leftToPin": 152.0,
+  "teeOnGreen": 0,
+  "teeRough": 8,
+  "teeBunker": 0,
+  "insideAvg": 1.27
+ },
+ "blowups": 6,
+ "savings": {
+  "tee3": 1.2,
+  "short": 3.5,
+  "par4": 1.2,
+  "damage": 1.5
+ },
+ "plan": [
+  {
+   "n": 1,
+   "par": 4,
+   "index": 4,
+   "personalPar": 6,
+   "len": 229.0,
+   "avg": 5.8,
+   "best": 4,
+   "times": 4,
+   "tee": 78.0,
+   "inside": 1
+  },
+  {
+   "n": 2,
+   "par": 3,
+   "index": 16,
+   "personalPar": 4,
+   "len": 67.0,
+   "avg": 5,
+   "best": 3,
+   "times": 7,
+   "tee": 63.0,
+   "inside": 3.9
+  },
+  {
+   "n": 3,
+   "par": 3,
+   "index": 6,
+   "personalPar": 5,
+   "len": 112.0,
+   "avg": 6.2,
+   "best": 3,
+   "times": 5,
+   "tee": 85.0,
+   "inside": 4.6
+  },
+  {
+   "n": 4,
+   "par": 3,
+   "index": 18,
+   "personalPar": 4,
+   "len": 74.0,
+   "avg": 4.7,
+   "best": 3,
+   "times": 6,
+   "tee": 44.0,
+   "inside": 3
+  },
+  {
+   "n": 5,
+   "par": 3,
+   "index": 12,
+   "personalPar": 4,
+   "len": 70.0,
+   "avg": 4,
+   "best": 3,
+   "times": 6,
+   "tee": 63.0,
+   "inside": 2.7
+  },
+  {
+   "n": 6,
+   "par": 4,
+   "index": 2,
+   "personalPar": 6,
+   "len": 207.0,
+   "avg": 6.3,
+   "best": 4,
+   "times": 7,
+   "tee": 67.0,
+   "inside": 1.4
+  },
+  {
+   "n": 7,
+   "par": 3,
+   "index": 10,
+   "personalPar": 4,
+   "len": 99.0,
+   "avg": 5,
+   "best": 3,
+   "times": 7,
+   "tee": 85.0,
+   "inside": 3.4
+  },
+  {
+   "n": 8,
+   "par": 3,
+   "index": 14,
+   "personalPar": 4,
+   "len": 92.0,
+   "avg": 5,
+   "best": 4,
+   "times": 6,
+   "tee": 88.0,
+   "inside": 3.8
+  },
+  {
+   "n": 9,
+   "par": 3,
+   "index": 8,
+   "personalPar": 5,
+   "len": 72.0,
+   "avg": 4.6,
+   "best": 4,
+   "times": 5,
+   "tee": 60.0,
+   "inside": 3.2
+  }
+ ],
+ "puttsTracked": false
+}
