@@ -171,18 +171,24 @@
       const c = clubFor(len);
       return [{ label: 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
     }
+    // Par 4: salida recta con el hierro 7; otro hierro 7 si todavía no alcanzas, y al
+    // green con un palo más (o chip rodado si quedan 30 m o menos).
     const st = steadyClub();
     const steps = [];
     let left = len;
-    ['Salida', 'Segundo'].forEach((label) => {
-      const d = Math.min(st.m, left);
-      left -= d;
-      steps.push({ label, club: st.name, shot: d, left });
-    });
-    if (left > 0) {
-      steps.push(left <= 30
-        ? { label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 }
-        : { label: 'Al green', club: clubFor(left).name, shot: left, left: 0 });
+    const labels = ['Salida', 'Segundo', 'Tercero'];
+    while (left > 0 && steps.length < 3) {
+      const label = labels[steps.length];
+      if (left <= 30 && steps.length) {
+        steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 });
+        left = 0;
+      } else if (left > st.m) {
+        left -= st.m;
+        steps.push({ label, club: st.name, shot: st.m, left });
+      } else {
+        steps.push({ label: 'Al green', club: clubFor(left).name, shot: left, left: 0 });
+        left = 0;
+      }
     }
     return steps;
   }
@@ -191,7 +197,7 @@
   function holeTip(h) {
     const right = data.fairway && data.fairway.percentFairwayRight;
     if (h.par === 4) {
-      return `Tres golpes rectos al green con el palo que más derecho te sale. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${h.personalPar}, ganaste el hoyo contra tu handicap.`;
+      return `Salida recta con el hierro 7, no con el driver, y al green con un palo más. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${h.personalPar}, ganaste el hoyo contra tu handicap.`;
     }
     const short = (h.len || 0) - (h.tee || 0);
     if (short >= 12) {
@@ -338,11 +344,11 @@
       <div class="cd-card cd-reveal">
         <div class="flex items-center justify-between gap-2">
           <div class="cd-kicker">Tu bolsa · cuánto mandas cada palo</div>
-          <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver al estimado</button>
+          <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver a la tabla</button>
         </div>
         <div id="cdBag" class="space-y-1.5 mt-3"></div>
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
-          ? `Estimado con tus ${data.fullShots.n} golpes completos en Garmin: la mitad pasa de ${mYd(data.fullShots.p50)} y el 10% más largo llega a ${mYd(data.fullShots.p90)} (así se calculó el Hierro 4) y tu tiro más largo fue de ${mYd(data.fullShots.max)} (el Driver). Los demás palos siguen la escalera de la tabla de distancias por palo, ajustada a tu golpe. El plan ya te da un palo más del que llega, porque tu fallo es quedarte corto. El reloj no tiene marcado qué palo usaste, así que ajusta cada uno con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
+          ? `Distancias de la tabla de referencia por palo que mandaste: hierro 9 a 119 m y entre un hierro y otro hay de 9 a 10 m. La tabla no trae maderas: la madera 3 (180 m) y el driver (200 m) son la medida típica de ese mismo jugador. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
           : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
       </div>
 
@@ -448,7 +454,7 @@
               </div>
             </li>`).join('')}
         </ol>
-        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Dos golpes con el palo que más derecho te sale y el tercero al green.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
+        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Salida recta con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
       </div>`;
   }
 

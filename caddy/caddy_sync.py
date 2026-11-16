@@ -137,18 +137,26 @@ def main():
     by_hole = defaultdict(list)
     for h in holes:
         by_hole[h["n"]].append(h)
+    # Si el reloj marcó la salida tarde (p. ej. un hoyo de 74 m medido en 8 m), esa
+    # ronda no sirve para distancias: se descarta la que mide menos del 70% de la
+    # mediana del hoyo. Los golpes sí cuentan.
+    for H in by_hole.values():
+        med = st.median(h["len"] for h in H)
+        for h in H:
+            h["ok"] = h["len"] >= 0.7 * med
 
     def group(par):
         H = [h for h in holes if h["par"] == par]
+        V = [h for h in H if h["ok"]]
         return {
             "n": len(H),
             "avgStrokes": mean((h["strokes"] for h in H), 2),
-            "holeLen": mean((h["len"] for h in H), 0),
-            "teeDist": mean((h["tee"] for h in H), 0),
-            "leftToPin": mean((h["left"] for h in H), 0),
-            "teeOnGreen": sum(1 for h in H if h["teeLie"] == "Green"),
-            "teeRough": sum(1 for h in H if h["teeLie"] == "Rough"),
-            "teeBunker": sum(1 for h in H if h["teeLie"] == "Bunker"),
+            "holeLen": mean((h["len"] for h in V), 0),
+            "teeDist": mean((h["tee"] for h in V), 0),
+            "leftToPin": mean((h["left"] for h in V), 0),
+            "teeOnGreen": sum(1 for h in V if h["teeLie"] == "Green"),
+            "teeRough": sum(1 for h in V if h["teeLie"] == "Rough"),
+            "teeBunker": sum(1 for h in V if h["teeLie"] == "Bunker"),
             "insideAvg": mean((h["inside"] for h in H), 2),
         }
 
@@ -175,11 +183,11 @@ def main():
             "par": course["pars"][i],
             "index": course["holeIndex"][i] if course.get("holeIndex") else None,
             "personalPar": personal[i],
-            "len": mean((h["len"] for h in H), 0),
+            "len": round(st.median([h["len"] for h in H if h["ok"]])) if H else None,
             "avg": mean((h["strokes"] for h in H), 1),
             "best": min((h["strokes"] for h in H), default=None),
             "times": len(H),
-            "tee": mean((h["tee"] for h in H), 0),
+            "tee": mean((h["tee"] for h in H if h["ok"]), 0),
             "inside": mean((h["inside"] for h in H), 1),
         })
 
@@ -195,17 +203,16 @@ def main():
            ("Sand 52°", None), ("Sand 56°", "Sand Wedge")]
     garmin_ids = {club_types.get(c["clubTypeId"]): c["id"] for c in club_list if not c.get("deleted")}
     fs = sorted(full_shots)
-    top = fs[int(0.9 * (len(fs) - 1))] if fs else 110   # hierro 4: el 10% más largo de tus tiros
-    longest = fs[-1] if fs else 140                     # driver: tu tiro más largo
     # Escalera de distancias de la tabla de referencia (Golfers Stone) que mandó Paulo,
-    # escalada a su golpe: Hierro 4 = el 10% más largo de sus tiros, y los demás
-    # guardan la misma proporción que en la tabla. Los wedges que la tabla no trae
+    # tal cual (sin escalar). Los wedges que la tabla no trae
     # (AW, 52° y 56°) se intercalan entre el PW (101 m) y el SW de 54° (73 m).
     LADDER = {"Hierro 4": 165, "Hierro 5": 155, "Hierro 6": 146, "Hierro 7": 137, "Hierro 8": 128,
               "Hierro 9": 119, "PW": 101, "AW": 90, "Sand 52°": 80, "Sand 56°": 70}
-    scale = top / LADDER["Hierro 4"]
-    est = {"Driver": longest, "Madera 3": (longest + top) / 2}
-    est.update({name: ref * scale for name, ref in LADDER.items()})
+    # Paulo, 15-nov: «agarra la distancia del palo 9 de la escalera»: la tabla va tal
+    # cual (hierro 9 = 119 m). Las maderas no vienen en la tabla: referencia estándar
+    # para ese mismo jugador (madera 3 de 180 m y driver de 200 m), editables en la app.
+    est = {"Driver": 200, "Madera 3": 180}
+    est.update(LADDER)
     clubs = []
     for name, gtype in BAG:
         real = club_shots.get(garmin_ids.get(gtype), []) if gtype else []
