@@ -63,7 +63,10 @@ def main():
     stats = get("/player/stats")
     summaries = get("/scorecard/summary", **{"per-page": 200, "user-locale": "es"})["scorecardSummaries"]
 
+    club_list = get("/club/player", **{"per-page": 100})
+    club_types = {t["value"]: t["name"] for t in get("/club/types")}
     rounds, holes = [], []
+    full_shots, club_shots = [], defaultdict(list)
     course = None
     for s in summaries:
         det = get("/scorecard/detail", **{"scorecard-ids": str(s["id"]), "include-longest-shot-distance": "true"})
@@ -103,6 +106,11 @@ def main():
             sh = sorted(hs.get("shots") or [], key=lambda x: x["shotOrder"])
             if not pin or not sh or not strokes.get(n):
                 continue
+            for x in sh:
+                if x.get("shotType") in ("TEE", "APPROACH", "LAYUP") and x.get("meters", 0) > 40:
+                    full_shots.append(x["meters"])
+                    if x.get("clubId"):
+                        club_shots[x["clubId"]].append(x["meters"])
             dist = [meters(x["startLoc"], pin) for x in sh]
             long_shots = sum(1 for v in dist if v > INSIDE)
             holes.append({
@@ -175,6 +183,36 @@ def main():
             "inside": mean((h["inside"] for h in H), 1),
         })
 
+    # Bolsa: distancia de cada palo. Si el reloj trae el palo marcado (3 tiros o más)
+    # se usa la mediana real; si no, se estima: el palo más largo = el 10% más largo
+    # de tus tiros completos y de ahí bajan en escalones parejos hasta el SW (50 m).
+    # Bolsa real de Paulo (15-nov-2026). En Garmin varios palos están retirados, así
+    # que la lista manda aquí; el segundo valor liga el palo con su tipo en Garmin
+    # para usar la distancia real cuando el reloj traiga el palo marcado.
+    BAG = [("Driver", "Driver"), ("Madera 3", "3 Wood"),
+           ("Hierro 4", "4 Iron"), ("Hierro 5", "5 Iron"), ("Hierro 6", "6 Iron"), ("Hierro 7", "7 Iron"),
+           ("Hierro 8", "8 Iron"), ("Hierro 9", "9 Iron"), ("PW", "Pitching Wedge"), ("AW", "Gap Wedge"),
+           ("Sand 52°", None), ("Sand 56°", "Sand Wedge")]
+    garmin_ids = {club_types.get(c["clubTypeId"]): c["id"] for c in club_list if not c.get("deleted")}
+    fs = sorted(full_shots)
+    top = fs[int(0.9 * (len(fs) - 1))] if fs else 110   # hierro 4: el 10% más largo de tus tiros
+    longest = fs[-1] if fs else 140                     # driver: tu tiro más largo
+    low = 45                                            # sand 56°
+    irons = [b for b in BAG if b[0] not in ("Driver", "Madera 3")]
+    step = (top - low) / max(len(irons) - 1, 1)
+    est = {"Driver": longest, "Madera 3": (longest + top) / 2}
+    for k, (name, _) in enumerate(irons):
+        est[name] = top - step * k
+    clubs = []
+    for name, gtype in BAG:
+        real = club_shots.get(garmin_ids.get(gtype), []) if gtype else []
+        clubs.append({
+            "name": name,
+            "m": round(st.median(real)) if len(real) >= 3 else round(est[name]),
+            "source": "garmin" if len(real) >= 3 else "estimado",
+        })
+    shots_pct = {k: round(fs[int(q * (len(fs) - 1))]) for k, q in (("p50", .5), ("p75", .75), ("p90", .9))} if fs else {}
+
     sg = []
     names = {"DRIVE": "Salida", "APPROACH": "Aproximación", "CHIP": "Chip", "PUTT": "Putt",
              "BUNKER": "Bunker", "RECOVERY": "Recuperación"}
@@ -206,6 +244,8 @@ def main():
         "blowups": blowups,
         "savings": {"tee3": save_tee3, "short": save_short, "par4": save_p4, "damage": save_damage},
         "plan": plan,
+        "clubs": clubs,
+        "fullShots": {"n": len(fs), **shots_pct, "max": round(fs[-1]) if fs else None},
         "puttsTracked": any(r.get("playerStrokesGained") is not None for r in stats.get("strokesGainedRatings", []) if r["statShotType"] == "PUTT"),
     }
     OUT.write_text(json.dumps(data, ensure_ascii=False, indent=1))

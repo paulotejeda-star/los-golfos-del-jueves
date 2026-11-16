@@ -1,6 +1,6 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-16T01:33+00:00",
+ "updated": "2026-11-16T01:46+00:00",
  "handicap": 48.17,
  "courseHandicap18": 27,
  "rounds": [
@@ -263,5 +263,74 @@
    "inside": 3.2
   }
  ],
+ "clubs": [
+  {
+   "name": "Driver",
+   "m": 145,
+   "source": "estimado"
+  },
+  {
+   "name": "Madera 3",
+   "m": 129,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 4",
+   "m": 113,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 5",
+   "m": 105,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 6",
+   "m": 98,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 7",
+   "m": 90,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 8",
+   "m": 83,
+   "source": "estimado"
+  },
+  {
+   "name": "Hierro 9",
+   "m": 75,
+   "source": "estimado"
+  },
+  {
+   "name": "PW",
+   "m": 68,
+   "source": "estimado"
+  },
+  {
+   "name": "AW",
+   "m": 60,
+   "source": "estimado"
+  },
+  {
+   "name": "Sand 52°",
+   "m": 53,
+   "source": "estimado"
+  },
+  {
+   "name": "Sand 56°",
+   "m": 45,
+   "source": "estimado"
+  }
+ ],
+ "fullShots": {
+  "n": 57,
+  "p50": 79,
+  "p75": 96,
+  "p90": 113,
+  "max": 145
+ },
  "puttsTracked": false
 }

@@ -7,6 +7,9 @@
   const fmt1 = (n) => Number(n).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const fmt0 = (n) => Math.round(Number(n)).toLocaleString('es-MX');
   const pct = (n) => `${Math.round(n)}%`;
+  const yd = (m) => Math.round(Number(m) * 1.0936);
+  const mYd = (m) => `${fmt0(m)} m (${yd(m)} yd)`;
+  const BAG_KEY = 'caddy_ptc_bolsa_v1';
 
   let data = null;
   let rendered = false;
@@ -130,9 +133,53 @@
         <rect x="14" y="50" width="14" height="10" rx="2" fill="#1f4d3d"/>
         <path d="M21 55 Q${(21 + teeDist) / 2} 8 ${teeDist} 55" fill="none" stroke="${shortfall > 12 && !long ? '#fb7185' : '#fbbf24'}" stroke-width="1.5" class="cd-dash"/>
         ${ball(`M21 55 Q${(21 + teeDist) / 2} 8 ${teeDist} 55`, shortfall > 12 && !long ? '#fb7185' : '#fbbf24', 2.2, 0)}
-        <text x="${Math.max(30, teeDist - 30)}" y="80" fill="#cbd5e1" font-size="10" font-weight="700">tu salida ${fmt0(h.tee)} m</text>
-        <text x="${greenX - 30}" y="96" fill="#34d399" font-size="10" font-weight="700">${fmt0(h.len)} m</text>
+        <text x="${Math.max(24, teeDist - 40)}" y="80" fill="#cbd5e1" font-size="10" font-weight="700">tu salida ${fmt0(h.tee)} m / ${yd(h.tee)} yd</text>
+        <text x="${Math.min(greenX - 40, 236)}" y="98" fill="#34d399" font-size="10" font-weight="700">${fmt0(h.len)} m / ${yd(h.len)} yd</text>
       </svg>`;
+  }
+
+  // ---------- bolsa y palo sugerido ----------
+  let bag = [];
+  function loadBag() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(BAG_KEY) || '{}') || {}; } catch (e) { saved = {}; }
+    bag = (data.clubs || []).map((c) => ({ ...c, est: c.m, m: Number(saved[c.name]) || c.m, edited: saved[c.name] != null && Number(saved[c.name]) !== c.m }));
+  }
+  function saveBag() {
+    const out = {};
+    bag.forEach((c) => { if (c.m !== c.est) out[c.name] = c.m; });
+    try { localStorage.setItem(BAG_KEY, JSON.stringify(out)); } catch (e) { /* sin almacenamiento: queda en memoria */ }
+  }
+  // El palo más corto que llega (si dudas entre dos, ya es el largo: "un palo más")
+  function clubFor(dist) {
+    const byLen = [...bag].sort((a, b) => a.m - b.m);
+    return byLen.find((c) => c.m >= dist) || byLen[byLen.length - 1];
+  }
+  function steadyClub() {
+    return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
+  }
+  // Pasos del hoyo: palo, distancia del golpe y lo que queda al hoyo
+  function holeSteps(h) {
+    const len = h.len || 0;
+    if (!bag.length || !len) return [];
+    if (h.par === 3) {
+      const c = clubFor(len);
+      return [{ label: 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
+    }
+    const st = steadyClub();
+    const steps = [];
+    let left = len;
+    ['Salida', 'Segundo'].forEach((label) => {
+      const d = Math.min(st.m, left);
+      left -= d;
+      steps.push({ label, club: st.name, shot: d, left });
+    });
+    if (left > 0) {
+      steps.push(left <= 30
+        ? { label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 }
+        : { label: 'Al green', club: clubFor(left).name, shot: left, left: 0 });
+    }
+    return steps;
   }
 
   // ---------- consejos ----------
@@ -143,7 +190,7 @@
     }
     const short = (h.len || 0) - (h.tee || 0);
     if (short >= 12) {
-      return `Te quedas corto: tu salida promedia ${fmt0(h.tee)} m y el hoyo mide ${fmt0(h.len)} m. Toma un palo más y apunta al centro del green, no a la bandera.`;
+      return `Te quedas corto: tu salida promedia ${mYd(h.tee)} y el hoyo mide ${mYd(h.len)}. Toma un palo más y apunta al centro del green, no a la bandera.`;
     }
     if ((h.inside || 0) >= 3.5) {
       return `Llegas cerca, pero gastas ${fmt1(h.inside)} golpes desde 30 m. Rueda la bola con hierro 8 hasta el green y busca dejar un putt corto.`;
@@ -157,9 +204,9 @@
     const sv = d.savings;
     const plays = [
       { key: 'short', icon: '🎯', title: 'Dentro de 30 m: rueda, no vueles', save: sv.short,
-        why: `Desde 30 m usas ${fmt1(d.par3.insideAvg)} golpes en los par 3. Un buen jugador de tu nivel usa 3. Chip rodado con hierro 8 y putt.` },
+        why: `Desde 30 m (33 yd) usas ${fmt1(d.par3.insideAvg)} golpes en los par 3. Un buen jugador de tu nivel usa 3. Chip rodado con hierro 8 y putt.` },
       { key: 'tee3', icon: '🏌️', title: 'Par 3: un palo más', save: sv.tee3,
-        why: `Tus salidas promedian ${fmt0(d.par3.teeDist)} m en hoyos de ${fmt0(d.par3.holeLen)} m. Solo ${d.par3.teeOnGreen} de ${d.par3.n} cayeron en green; ${d.par3.teeRough} se fueron al rough.` },
+        why: `Tus salidas promedian ${mYd(d.par3.teeDist)} en hoyos de ${mYd(d.par3.holeLen)}. Solo ${d.par3.teeOnGreen} de ${d.par3.n} cayeron en green; ${d.par3.teeRough} se fueron al rough.` },
       { key: 'par4', icon: '↖️', title: 'Par 4: tres golpes rectos, apunta a la izquierda', save: sv.par4,
         why: `Promedias ${fmt1(d.par4.avgStrokes)} golpes en los par 4. ${pct(d.fairway.percentFairwayRight)} de tus salidas fallan a la derecha y ${pct(d.fairway.percentFairwayLeft)} a la izquierda.` },
       { key: 'damage', icon: '🛟', title: 'Control de daños: nada de golpes de héroe', save: sv.damage,
@@ -282,6 +329,18 @@
         </div>
       </div>
 
+      <!-- 4b. Tu bolsa -->
+      <div class="cd-card cd-reveal">
+        <div class="flex items-center justify-between gap-2">
+          <div class="cd-kicker">Tu bolsa · cuánto mandas cada palo</div>
+          <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver al estimado</button>
+        </div>
+        <div id="cdBag" class="space-y-1.5 mt-3"></div>
+        <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
+          ? `Estimado con tus ${data.fullShots.n} golpes completos en Garmin: la mitad pasa de ${mYd(data.fullShots.p50)} y el 10% más largo llega a ${mYd(data.fullShots.p90)} (así se calculó el Hierro 4) y tu tiro más largo fue de ${mYd(data.fullShots.max)} (el Driver). El reloj no tiene marcado qué palo usaste, así que ajusta cada uno con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
+          : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
+      </div>
+
       <!-- 5. Progreso -->
       <div class="cd-card cd-reveal">
         <div class="cd-kicker">Tu progreso</div>
@@ -315,6 +374,12 @@
     root.querySelectorAll('[data-hole]').forEach((btn) => {
       btn.addEventListener('click', () => { selectedHole = Number(btn.dataset.hole); renderHole(); });
     });
+    const reset = document.getElementById('cdBagReset');
+    if (reset) reset.addEventListener('click', () => {
+      try { localStorage.removeItem(BAG_KEY); } catch (e) { /* nada */ }
+      loadBag(); renderBag(); renderHole();
+    });
+    renderBag();
     renderHole();
   }
 
@@ -339,10 +404,73 @@
             ${[['Par', h.par, 'text-white'], ['Tu meta', h.personalPar, 'text-emerald-300'], ['Promedio', h.avg != null ? fmt1(h.avg) : 's/d', 'text-rose-300'], ['Mejor', h.best ?? 's/d', 'text-amber-300']]
               .map(([k, v, c]) => `<div class="bg-[#0a2019] rounded-xl py-1.5"><div class="text-lg font-extrabold ${c} cd-big">${v}</div><div class="text-[10px] cd-muted">${k}</div></div>`).join('')}
           </div>
-          <p class="text-[11px] cd-muted mt-2">${fmt0(h.len)} m · dificultad ${h.index} de 18 (1 es el más difícil) · jugado ${h.times} veces</p>
+          <div class="flex items-center justify-between bg-[#0a2019] rounded-xl px-3 py-2 mt-2">
+            <span class="text-[11px] cd-muted">Largo del hoyo</span>
+            <span class="font-extrabold text-white cd-big">${fmt0(h.len)} m <span class="text-emerald-300">· ${yd(h.len)} yd</span></span>
+          </div>
+          <p class="text-[11px] cd-muted mt-2">Dificultad ${h.index} de 18 (1 es el más difícil) · jugado ${h.times} veces</p>
           <p class="text-sm text-slate-100 mt-2 leading-snug">💬 ${holeTip(h)}</p>
         </div>
+      </div>
+      ${renderSteps(h)}`;
+  }
+
+  function renderSteps(h) {
+    const steps = holeSteps(h);
+    if (!steps.length) return '';
+    return `
+      <div class="mt-3 rounded-2xl border border-emerald-900/70 bg-[#0a2019] p-3">
+        <p class="text-xs font-bold text-white">🧭 Tu plan en este hoyo</p>
+        <div class="relative h-2 rounded-full bg-[#13352a] mt-3 mb-1" aria-hidden="true">
+          ${steps.map((s, i) => {
+            const done = steps.slice(0, i + 1).reduce((a, x) => a + x.shot, 0);
+            return `<span class="absolute -top-1 w-4 h-4 rounded-full border-2 border-[#0a2019] ${s.left ? 'bg-amber-300' : 'bg-emerald-400'} cd-pop" style="left:calc(${(done / h.len) * 100}% - 8px);animation-delay:${i * 120}ms"></span>`;
+          }).join('')}
+          <span class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-amber-400 to-emerald-400 cd-bar" data-w="100" style="width:100%"></span>
+        </div>
+        <div class="flex justify-between text-[10px] cd-muted"><span>salida</span><span>green</span></div>
+        <ol class="mt-2 space-y-2">
+          ${steps.map((s, i) => `
+            <li class="flex items-center gap-3 cd-pop" style="animation-delay:${i * 120}ms">
+              <span class="w-7 h-7 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-xs flex items-center justify-center shrink-0">${i + 1}</span>
+              <div class="min-w-0 flex-1">
+                <div class="text-[11px] cd-muted">${s.label}</div>
+                <div class="text-sm font-extrabold text-white">🏌️ ${s.club}</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-sm font-bold text-white cd-big">${fmt0(s.shot)} m · ${yd(s.shot)} yd</div>
+                <div class="text-[10px] ${s.left ? 'text-amber-300' : 'text-emerald-300'}">${s.left ? `quedan ${fmt0(s.left)} m · ${yd(s.left)} yd` : 'al green'}</div>
+              </div>
+            </li>`).join('')}
+        </ol>
+        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Dos golpes con el palo que más derecho te sale y el tercero al green.' : 'Si dudas entre dos palos, toma el más largo.'} Las distancias de cada palo están en «Tu bolsa».</p>
       </div>`;
+  }
+
+  function renderBag() {
+    const box = document.getElementById('cdBag');
+    if (!box) return;
+    const max = Math.max(...bag.map((c) => c.m), 1);
+    box.innerHTML = bag.map((c, i) => `
+      <div class="flex items-center gap-2">
+        <span class="w-20 text-xs font-bold text-white shrink-0">${c.name}</span>
+        <div class="flex-1 h-6 bg-[#0a2019] rounded-lg relative overflow-hidden">
+          <div class="h-full rounded-lg bg-gradient-to-r from-emerald-700 to-emerald-400" style="width:${(c.m / max) * 100}%;transition:width .4s"></div>
+          <span class="absolute inset-0 flex items-center pl-2 text-[11px] font-extrabold text-white cd-big">${c.m} m · ${yd(c.m)} yd${c.edited ? ' ✎' : ''}</span>
+        </div>
+        <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="-1" aria-label="Restar 1 metro a ${c.name}">−</button>
+        <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="1" aria-label="Sumar 1 metro a ${c.name}">+</button>
+      </div>`).join('');
+    box.querySelectorAll('[data-bag]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const c = bag[Number(b.dataset.bag)];
+        c.m = Math.max(10, c.m + Number(b.dataset.step));
+        c.edited = c.m !== c.est;
+        saveBag();
+        renderBag();
+        renderHole();
+      });
+    });
   }
 
   function animateIn(root) {
@@ -384,7 +512,7 @@
         return;
       }
     }
-    if (!rendered) { render(root); rendered = true; }
+    if (!rendered) { loadBag(); render(root); rendered = true; }
     requestAnimationFrame(() => animateIn(root));
   }
 
