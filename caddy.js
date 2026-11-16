@@ -160,6 +160,11 @@
     const up = Math.min(i + 1, byLen.length - 1);
     return byLen[cap >= 0 && i <= cap ? Math.min(up, cap) : i];
   }
+  // El palo justo: el más corto que alcanza (para cuando ya mediste lo que te falta)
+  function clubExact(dist) {
+    const byLen = [...bag].sort((a, b) => a.m - b.m);
+    return byLen.find((c) => c.m >= dist) || byLen[byLen.length - 1];
+  }
   function steadyClub() {
     return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
   }
@@ -173,20 +178,24 @@
     }
     // Par 4: salida recta con el hierro 7; otro hierro 7 si todavía no alcanzas, y al
     // green con un palo más (o chip rodado si quedan 30 m o menos).
+    return stepsFrom(len, ['Salida', 'Segundo', 'Tercero'], false);
+  }
+  // Golpes desde una distancia: hierro 7 mientras no alcances, luego un palo más al
+  // green, o chip rodado con hierro 8 si quedan 30 m o menos.
+  function stepsFrom(dist, labels, chipFirst, exact) {
     const st = steadyClub();
     const steps = [];
-    let left = len;
-    const labels = ['Salida', 'Segundo', 'Tercero'];
+    let left = dist;
     while (left > 0 && steps.length < 3) {
       const label = labels[steps.length];
-      if (left <= 30 && steps.length) {
+      if (left <= 30 && (chipFirst || steps.length)) {
         steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 });
         left = 0;
       } else if (left > st.m) {
         left -= st.m;
         steps.push({ label, club: st.name, shot: st.m, left });
       } else {
-        steps.push({ label: 'Al green', club: clubFor(left).name, shot: left, left: 0 });
+        steps.push({ label: 'Al green', club: (exact ? clubExact(left) : clubFor(left)).name, shot: left, left: 0 });
         left = 0;
       }
     }
@@ -423,7 +432,68 @@
           <p class="text-sm text-slate-100 mt-2 leading-snug">💬 ${holeTip(h)}</p>
         </div>
       </div>
-      ${renderSteps(h)}`;
+      ${renderSteps(h)}
+      ${renderLeftBox()}`;
+    bindLeftBox(h);
+  }
+
+  // ---------- en la cancha: ¿cuánto te falta? ----------
+  const UNIT_KEY = 'caddy_ptc_unidad';
+  let unit = 'yd';
+  try { unit = localStorage.getItem(UNIT_KEY) === 'm' ? 'm' : 'yd'; } catch (e) { /* sin almacenamiento */ }
+  function renderLeftBox() {
+    const ub = (u) => `<button type="button" class="px-3 h-9 text-xs font-bold rounded-lg ${unit === u ? 'bg-emerald-500 text-[#052e22]' : 'bg-[#0a2019] text-slate-300 border border-emerald-900'}" data-unit="${u}" aria-pressed="${unit === u}">${u === 'm' ? 'metros' : 'yardas'}</button>`;
+    return `
+      <div class="mt-3 rounded-2xl border border-amber-500/40 bg-[#1a1a0d]/40 p-3">
+        <label for="cdLeftIn" class="text-xs font-bold text-white">📍 ¿Cuánto te falta al green?</label>
+        <p class="text-[10px] cd-muted mt-0.5">Lee la distancia en el reloj y el plan se ajusta desde ahí.</p>
+        <div class="flex items-center gap-2 mt-2">
+          <input id="cdLeftIn" type="number" inputmode="numeric" min="1" max="400" placeholder="ej. 106" class="w-24 h-9 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-extrabold text-center cd-big focus:outline-none focus:border-emerald-400" />
+          ${ub('yd')}${ub('m')}
+        </div>
+        <div id="cdLeftPlan" class="mt-2" aria-live="polite"></div>
+      </div>`;
+  }
+  function renderLeftPlan() {
+    const out = document.getElementById('cdLeftPlan');
+    const inp = document.getElementById('cdLeftIn');
+    if (!out || !inp) return;
+    const v = Number(inp.value);
+    if (!v || v <= 0) { out.innerHTML = ''; return; }
+    const m = unit === 'yd' ? v / 1.0936 : v;
+    const steps = stepsFrom(m, ['Siguiente', 'Después', 'Luego'], true, true);
+    out.innerHTML = `
+      <ol class="space-y-2">
+        ${steps.map((s, i) => `
+          <li class="flex items-center gap-3 cd-pop" style="animation-delay:${i * 100}ms">
+            <span class="w-7 h-7 rounded-full bg-amber-400/20 text-amber-300 font-black text-xs flex items-center justify-center shrink-0">${i + 1}</span>
+            <div class="min-w-0 flex-1">
+              <div class="text-[11px] cd-muted">${s.label}</div>
+              <div class="text-sm font-extrabold text-white">🏌️ ${s.club}</div>
+            </div>
+            <div class="text-right shrink-0">
+              <div class="text-sm font-bold text-white cd-big">${fmt0(s.shot)} m · ${yd(s.shot)} yd</div>
+              <div class="text-[10px] ${s.left ? 'text-amber-300' : 'text-emerald-300'}">${s.left ? `quedan ${fmt0(s.left)} m · ${yd(s.left)} yd` : 'al green'}</div>
+            </div>
+          </li>`).join('')}
+      </ol>
+      <p class="text-[10px] cd-muted mt-2">Es el palo justo que alcanza esa distancia según la tabla. Si vienes pegando corto, súmale uno.</p>`;
+  }
+  function bindLeftBox() {
+    const inp = document.getElementById('cdLeftIn');
+    if (inp) inp.addEventListener('input', renderLeftPlan);
+    document.querySelectorAll('[data-unit]').forEach((b) => b.addEventListener('click', () => {
+      const next = b.dataset.unit;
+      let prev = inp ? Number(inp.value) : 0;
+      if (prev && next !== unit) prev = Math.round(next === 'm' ? prev / 1.0936 : prev * 1.0936);
+      unit = next;
+      try { localStorage.setItem(UNIT_KEY, unit); } catch (e) { /* sin almacenamiento */ }
+      const box = b.closest('.rounded-2xl');
+      box.outerHTML = renderLeftBox();
+      bindLeftBox();
+      const ni = document.getElementById('cdLeftIn');
+      if (ni && prev) { ni.value = prev; renderLeftPlan(); }
+    }));
   }
 
   function renderSteps(h) {
