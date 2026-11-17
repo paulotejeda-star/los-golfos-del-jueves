@@ -12,7 +12,12 @@
   const BAG_KEY = 'caddy_ptc_bolsa_v1';
 
   let data = null;
+  let campos = [];
   let rendered = false;
+  const COURSE_KEY = 'caddy_ptc_campo';
+  const TEE_KEY = 'caddy_ptc_salida_';
+  let courseKey = 'huerta';
+  try { courseKey = localStorage.getItem(COURSE_KEY) || 'huerta'; } catch (e) { /* sin almacenamiento */ }
   let selectedHole = 1;
   const active = new Set();
 
@@ -117,8 +122,8 @@
   };
 
   // Hoyo dibujado según par y largo
-  function holeSvg(h) {
-    const long = h.par === 4;
+  function holeSvg(h, teeLabel) {
+    const long = h.par >= 4;
     const greenX = long ? 262 : 70 + Math.min(190, (h.len || 80) * 1.6);
     const teeDist = Math.min(greenX - 30, 30 + (h.tee || 60) * (long ? 1.0 : 1.6));
     const shortfall = (h.len || 0) - (h.tee || 0);
@@ -133,7 +138,7 @@
         <rect x="14" y="50" width="14" height="10" rx="2" fill="#1f4d3d"/>
         <path d="M21 55 Q${(21 + teeDist) / 2} 8 ${teeDist} 55" fill="none" stroke="${shortfall > 12 && !long ? '#fb7185' : '#fbbf24'}" stroke-width="1.5" class="cd-dash"/>
         ${ball(`M21 55 Q${(21 + teeDist) / 2} 8 ${teeDist} 55`, shortfall > 12 && !long ? '#fb7185' : '#fbbf24', 2.2, 0)}
-        <text x="${Math.max(24, teeDist - 40)}" y="80" fill="#cbd5e1" font-size="10" font-weight="700">tu salida ${fmt0(h.tee)} m / ${yd(h.tee)} yd</text>
+        <text x="${Math.max(24, teeDist - 40)}" y="80" fill="#cbd5e1" font-size="10" font-weight="700">${teeLabel || 'tu salida'} ${fmt0(h.tee)} m / ${yd(h.tee)} yd</text>
         <text x="${Math.min(greenX - 40, 236)}" y="98" fill="#34d399" font-size="10" font-weight="700">${fmt0(h.len)} m / ${yd(h.len)} yd</text>
       </svg>`;
   }
@@ -186,8 +191,8 @@
     const st = steadyClub();
     const steps = [];
     let left = dist;
-    while (left > 0 && steps.length < 3) {
-      const label = labels[steps.length];
+    while (left > 0 && steps.length < 6) {
+      const label = labels[steps.length] || `Golpe ${steps.length + 1}`;
       if (left <= 30 && (chipFirst || steps.length)) {
         steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 });
         left = 0;
@@ -368,13 +373,16 @@
         <div class="flex items-end gap-2 h-36 mt-3">
           ${d.rounds.map((r) => {
             const max = Math.max(...d.rounds.map((x) => x.overPerHole || 0), 1);
-            return `<div class="flex-1 flex flex-col items-center justify-end h-full">
-              <span class="text-[10px] font-bold text-slate-100 cd-big">+${fmt1(r.overPerHole)}</span>
-              <div class="cd-col w-full rounded-t-md bg-gradient-to-t from-amber-600 to-amber-300" data-h="${(r.overPerHole / max) * 78}"></div>
-              <span class="text-[9px] cd-muted mt-1 text-center leading-tight">${shortDate(r.date)}<br>${r.holes} h</span>
+            const off = r.excluded || r.course;
+            return `<div class="flex-1 flex flex-col items-center justify-end h-full" title="${off ? (r.excluded || r.course) : ''}">
+              <span class="text-[10px] font-bold ${r.excluded ? 'text-slate-500 line-through' : 'text-slate-100'} cd-big">+${fmt1(r.overPerHole)}</span>
+              <div class="cd-col w-full rounded-t-md ${r.excluded ? 'bg-slate-600/60 border border-dashed border-slate-400' : r.course ? 'bg-gradient-to-t from-sky-700 to-sky-400' : 'bg-gradient-to-t from-amber-600 to-amber-300'}" data-h="${(r.overPerHole / max) * 78}"></div>
+              <span class="text-[9px] cd-muted mt-1 text-center leading-tight">${shortDate(r.date)}<br>${r.excluded ? 'no fue tu juego' : `${r.holes} h`}</span>
             </div>`;
           }).join('')}
         </div>
+        ${d.rounds.some((r) => r.excluded) ? `<p class="text-[11px] text-slate-400 mt-2">Barra gris punteada: ${d.rounds.filter((r) => r.excluded).map((r) => `${shortDate(r.date)} · ${r.excluded}`).join('; ')}. Garmin sí la contó en tu handicap; el Caddy la deja fuera de tus promedios y distancias.</p>` : ''}
+        ${d.rounds.some((r) => r.course) ? '<p class="text-[11px] text-sky-300/80 mt-1">Barra azul: ronda en otro campo.</p>' : ''}
         <p class="text-[11px] cd-muted mt-2">Para bajar tu handicap, esta barra tiene que llegar a +${fmt1((d.personalPar9 - d.par9) / 9)} por hoyo (tu par personal).</p>
       </div>
 
@@ -497,7 +505,7 @@
   }
 
   function renderSteps(h) {
-    const steps = holeSteps(h);
+    const steps = h.steps || holeSteps(h);
     if (!steps.length) return '';
     return `
       <div class="mt-3 rounded-2xl border border-emerald-900/70 bg-[#0a2019] p-3">
@@ -524,11 +532,13 @@
               </div>
             </li>`).join('')}
         </ol>
-        <p class="text-[10px] cd-muted mt-2">${h.par === 4 ? 'Salida recta con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
+        <p class="text-[10px] cd-muted mt-2">${h.par >= 4 || steps.length > 1 ? 'Salida recta con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
       </div>`;
   }
 
-  function renderBag() {
+  let onBag = null;
+  function renderBag(cb) {
+    if (cb) onBag = cb; else if (cb === undefined && courseKey === 'huerta') onBag = null;
     const box = document.getElementById('cdBag');
     if (!box) return;
     const max = Math.max(...bag.map((c) => c.m), 1);
@@ -548,6 +558,7 @@
         c.m = Math.max(10, c.m + Number(b.dataset.step));
         c.edited = c.m !== c.est;
         saveBag();
+        if (onBag) { onBag(); return; }
         renderBag();
         renderHole();
       });
@@ -579,22 +590,215 @@
     if (!io) root.querySelectorAll('.cd-bar, .cd-col').forEach((b) => { b.style.width = b.dataset.w ? `${b.dataset.w}%` : ''; b.style.height = b.dataset.h ? `${b.dataset.h}%` : ''; });
   }
 
+
+  // ---------- otros campos: plan de 18 hoyos con la tarjeta oficial ----------
+  const YD2M = 0.9144;
+  // Handicap de cancha (WHS) con el handicap index de Garmin y el slope/rating de esa salida
+  function courseHcp(tee) {
+    return Math.round(data.handicap * tee.slope / 113 + (tee.rating - 72));
+  }
+  function strokesOn(index, ch) {
+    return Math.floor(ch / 18) + (index <= ch % 18 ? 1 : 0);
+  }
+  const shortGame = () => (data.par3 && data.par3.insideAvg) || 3;
+  function pickTee(c) {
+    let name = null;
+    try { name = localStorage.getItem(TEE_KEY + c.key); } catch (e) { /* nada */ }
+    // Por defecto la salida más corta de caballeros: con tu handicap es la que da menos golpes.
+    return c.tees.find((t) => t.name === name) || c.tees[0];
+  }
+  function coursePlan(c, tee) {
+    const ch = courseHcp(tee);
+    return c.pars.map((par, i) => {
+      const h = { n: i + 1, par, index: c.index[i], personalPar: par + strokesOn(c.index[i], ch), len: Math.round(tee.yd[i] * YD2M) };
+      h.steps = courseSteps(h);
+      h.tee = h.steps.length ? h.steps[0].shot : h.len;
+      // Golpes completos hasta tener el green a 30 m o menos + lo que de verdad gastas desde
+      // ahí según Garmin (chip y putts), no los dos putts de manual.
+      h.full = h.steps.filter((x) => !/^Chip/.test(x.club)).length;
+      h.caddy = Math.round((h.full + shortGame()) * 10) / 10;
+      return h;
+    });
+  }
+  // Menor número de golpes: par 3 al green si te alcanza un hierro; si no, y en par 4 y 5,
+  // golpes rectos con el hierro 7 hasta tener el green a tiro y entrar con un palo más.
+  function courseSteps(h) {
+    if (!bag.length) return [];
+    const labels = ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto'];
+    const cap = bag.find((c) => c.name === 'Hierro 4');
+    if (h.par === 3 && (!cap || h.len <= cap.m)) return [{ label: 'Salida al centro del green', club: clubFor(h.len).name, shot: h.len, left: 0 }];
+    return stepsFrom(h.len, labels, false);
+  }
+  function courseTip(h, ch) {
+    const right = data.fairway && data.fairway.percentFairwayRight;
+    const extra = h.personalPar - h.par;
+    const hard = h.index <= 3 ? `Es de los más difíciles (ventaja ${h.index}): aquí el handicap te da ${extra} golpes, así que ${h.personalPar} es un buen hoyo. ` : '';
+    const steps = h.steps.length;
+    const sg = `desde 30 m gastas ${fmt1(shortGame())} golpes (tu promedio en Garmin)`;
+    if (h.par === 3 && steps === 1) return `${hard}Un solo golpe al centro del green, no a la bandera; ${sg}: ${fmt1(h.caddy)} golpes. Si fallas, que sea corto y al frente, donde el chip es fácil.`;
+    if (h.par === 3) return `${hard}Par 3 largo para tu bolsa: no lo fuerces con madera. Deja la bola al frente del green y entra rodando; ${sg}: ${fmt1(h.caddy)}.`;
+    return `${hard}${h.full} golpe${h.full === 1 ? '' : 's'} completo${h.full === 1 ? '' : 's'} hasta el green y ${sg}: ${fmt1(h.caddy)}. Nada de driver: el hierro 7 te deja en juego, y ${pct(right || 0)} de tus salidas se van a la derecha, así que apunta al lado izquierdo del fairway. Tu meta con handicap es ${h.personalPar}.`;
+  }
+
+  function renderSwitch(box) {
+    const all = [{ key: 'huerta', name: data.course.name, short: 'La Huerta' }]
+      .concat(campos.map((c) => ({ key: c.key, name: c.name, short: c.name.split(' · ')[0].replace('Club ', '').replace(' Golf & Country Club', '') })));
+    if (!all.some((c) => c.key === courseKey)) courseKey = 'huerta';
+    box.innerHTML = `
+      <div class="flex gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Elige campo">
+        ${all.map((c) => `<button type="button" class="cd-hole-btn shrink-0 px-3 text-xs whitespace-nowrap" data-course="${c.key}" aria-pressed="${c.key === courseKey}" title="${c.name}">⛳ ${c.short}</button>`).join('')}
+      </div>`;
+    box.querySelectorAll('[data-course]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.course === courseKey) return;
+      courseKey = b.dataset.course;
+      try { localStorage.setItem(COURSE_KEY, courseKey); } catch (e) { /* nada */ }
+      selectedHole = 1;
+      paint();
+    }));
+  }
+
+  let current = null; // { c, tee, plan, ch }
+  function renderCourse(root, c) {
+    const tee = pickTee(c);
+    const ch = courseHcp(tee);
+    const plan = coursePlan(c, tee);
+    current = { c, tee, plan, ch };
+    const sum = (arr, k) => Math.round(arr.reduce((a, h) => a + h[k], 0));
+    const front = plan.slice(0, 9);
+    const back = plan.slice(9);
+    root.innerHTML = `
+      <div class="cd-card cd-reveal cd-in relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-sky-500/10 blur-2xl" aria-hidden="true"></div>
+        <div class="cd-kicker">🎯 Caddy PTC · plan de campo</div>
+        <h2 class="text-xl font-extrabold text-white leading-tight mt-1">${c.name}</h2>
+        <p class="text-xs cd-muted mt-0.5">${c.city} · par 72 · aún sin rondas tuyas en Garmin aquí</p>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar mt-3" role="group" aria-label="Salida">
+          ${c.tees.map((t) => `<button type="button" class="cd-hole-btn shrink-0 px-3 text-xs whitespace-nowrap" data-tee="${t.name}" aria-pressed="${t.name === tee.name}">${t.es} · ${fmt0(t.yd.reduce((a, b) => a + b, 0))} yd</button>`).join('')}
+        </div>
+        <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-amber-300 cd-big">${sum(front, 'caddy') + sum(back, 'caddy')}</div><div class="text-[10px] cd-muted leading-tight">ronda del<br>Caddy (18)</div></div>
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-emerald-300 cd-big">${sum(plan, 'personalPar')}</div><div class="text-[10px] cd-muted leading-tight">tu par<br>personal</div></div>
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-white cd-big">${ch}</div><div class="text-[10px] cd-muted leading-tight">golpes que<br>te da el campo</div></div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mt-2 text-[11px] text-center">
+          <div class="bg-[#0a2019] rounded-xl py-1.5"><span class="cd-muted">Ida (1-9):</span> <b class="text-amber-300">${sum(front, 'caddy')}</b> <span class="cd-muted">plan ·</span> <b class="text-emerald-300">${sum(front, 'personalPar')}</b> <span class="cd-muted">meta</span></div>
+          <div class="bg-[#0a2019] rounded-xl py-1.5"><span class="cd-muted">Vuelta (10-18):</span> <b class="text-amber-300">${sum(back, 'caddy')}</b> <span class="cd-muted">plan ·</span> <b class="text-emerald-300">${sum(back, 'personalPar')}</b> <span class="cd-muted">meta</span></div>
+        </div>
+        <p class="text-[11px] cd-muted mt-3 leading-snug"><b class="text-slate-200">Ronda del Caddy</b>: los golpes completos del plan (siempre recto, sin golpes de héroe) más lo que hoy gastas desde 30 m según Garmin (${fmt1(shortGame())} por hoyo). Asume que cada palo llega a lo que dice «Tu bolsa»: si no, ajústala y el número se recalcula. <b class="text-slate-200">Par personal</b>: par 72 más los ${ch} golpes que tu handicap ${fmt1(data.handicap)} recibe desde las ${tee.es.toLowerCase()} (rating ${tee.rating}, slope ${tee.slope}). Si la ronda del Caddy sale arriba del par personal, ese hoyo es para cuidar el número, no para atacar.</p>
+      </div>
+
+      <div class="cd-card cd-reveal cd-in">
+        <div class="cd-kicker">Plan hoyo por hoyo · ${c.name.split(' · ')[0]}</div>
+        <div class="flex gap-2 overflow-x-auto no-scrollbar py-2 mt-1" role="group" aria-label="Elige hoyo">
+          ${plan.map((h) => `<button type="button" class="cd-hole-btn shrink-0" data-chole="${h.n}" aria-pressed="${h.n === selectedHole}">${h.n}</button>`).join('')}
+        </div>
+        <div id="cdHole"></div>
+        <div class="mt-4">
+          <p class="text-xs font-bold text-white">Golpes del plan contra tu par personal, por hoyo</p>
+          <div class="flex items-end gap-0.5 sm:gap-1 h-32 mt-2">
+            ${plan.map((h) => {
+              const max = Math.max(...plan.map((x) => Math.max(x.caddy, x.personalPar))) + 0.5;
+              const over = h.caddy > h.personalPar;
+              return `<button type="button" class="flex-1 min-w-0 flex flex-col items-center justify-end h-full" data-chole="${h.n}" aria-label="Hoyo ${h.n}: plan ${fmt1(h.caddy)}, par personal ${h.personalPar}">
+                <span class="text-[9px] font-bold ${over ? 'text-rose-300' : 'text-emerald-300'} cd-big">${Math.round(h.caddy)}</span>
+                <div class="w-full relative flex items-end" style="height:78%">
+                  <div class="absolute left-0 right-0 z-10 border-t-2 border-dashed border-emerald-200" style="bottom:${(h.personalPar / max) * 100}%"></div>
+                  <div class="w-full rounded-t-sm ${over ? 'bg-gradient-to-t from-rose-600 to-rose-400' : 'bg-gradient-to-t from-sky-700 to-sky-400'}" style="height:${(h.caddy / max) * 100}%"></div>
+                </div>
+                <span class="text-[9px] cd-muted mt-1">${h.n}</span>
+              </button>`;
+            }).join('')}
+          </div>
+          <p class="text-[10px] cd-muted mt-1">Línea punteada = tu par personal. Barra azul = el plan te deja en tu meta o mejor.</p>
+        </div>
+      </div>
+
+      <div class="cd-card cd-reveal cd-in">
+        <div class="flex items-center justify-between gap-2">
+          <div class="cd-kicker">Tu bolsa · la misma de La Huerta</div>
+          <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver a la tabla</button>
+        </div>
+        <div id="cdBag" class="space-y-1.5 mt-3"></div>
+        <p class="text-[11px] cd-muted mt-3 leading-snug">Si ajustas un palo, el plan de todos los campos se recalcula.</p>
+      </div>
+
+      <p class="text-[10px] cd-muted text-center pb-2">Tarjeta oficial de ${c.name} (par, ventaja y yardas por salida, fuente ${c.source}). Cuando juegues aquí con el reloj, el Caddy sumará tus golpes reales.</p>`;
+
+    root.querySelectorAll('[data-tee]').forEach((b) => b.addEventListener('click', () => {
+      try { localStorage.setItem(TEE_KEY + c.key, b.dataset.tee); } catch (e) { /* nada */ }
+      renderCourse(root, c);
+    }));
+    root.querySelectorAll('[data-chole]').forEach((b) => b.addEventListener('click', () => { selectedHole = Number(b.dataset.chole); renderCourseHole(); }));
+    const reset = document.getElementById('cdBagReset');
+    if (reset) reset.addEventListener('click', () => {
+      try { localStorage.removeItem(BAG_KEY); } catch (e) { /* nada */ }
+      loadBag(); renderCourse(root, c);
+    });
+    renderBag(() => renderCourse(root, c));
+    renderCourseHole();
+  }
+
+  function renderCourseHole() {
+    const { plan, ch } = current;
+    const h = plan.find((x) => x.n === selectedHole) || plan[0];
+    document.querySelectorAll('[data-chole].cd-hole-btn').forEach((b) => b.setAttribute('aria-pressed', Number(b.dataset.chole) === h.n));
+    const box = document.getElementById('cdHole');
+    if (!box) return;
+    box.innerHTML = `
+      <div class="grid sm:grid-cols-2 gap-3 items-center">
+        <div>${holeSvg(h, 'salida del plan')}</div>
+        <div>
+          <div class="grid grid-cols-3 gap-1.5 text-center">
+            ${[['Par', h.par, 'text-white'], ['Plan Caddy', fmt1(h.caddy), 'text-amber-300'], ['Tu meta', h.personalPar, 'text-emerald-300']]
+              .map(([k, v, cl]) => `<div class="bg-[#0a2019] rounded-xl py-1.5"><div class="text-lg font-extrabold ${cl} cd-big">${v}</div><div class="text-[10px] cd-muted">${k}</div></div>`).join('')}
+          </div>
+          <div class="flex items-center justify-between bg-[#0a2019] rounded-xl px-3 py-2 mt-2">
+            <span class="text-[11px] cd-muted">Largo del hoyo</span>
+            <span class="font-extrabold text-white cd-big">${fmt0(h.len)} m <span class="text-emerald-300">· ${yd(h.len)} yd</span></span>
+          </div>
+          <p class="text-[11px] cd-muted mt-2">Dificultad ${h.index} de 18 (1 es el más difícil) · te da ${h.personalPar - h.par} golpe${h.personalPar - h.par === 1 ? '' : 's'}</p>
+          <p class="text-sm text-slate-100 mt-2 leading-snug">💬 ${courseTip(h, ch)}</p>
+        </div>
+      </div>
+      ${renderSteps(h)}
+      ${renderLeftBox()}`;
+    bindLeftBox();
+  }
+
+  function paint() {
+    const root = document.getElementById('tab-caddy');
+    if (!root) return;
+    active.clear();
+    root.innerHTML = '<div id="cdSwitch"></div><div id="cdBody" class="space-y-4"></div>';
+    renderSwitch(document.getElementById('cdSwitch'));
+    const body = document.getElementById('cdBody');
+    const c = campos.find((x) => x.key === courseKey);
+    if (c) { renderCourse(body, c); return; }
+    render(body);
+    requestAnimationFrame(() => animateIn(body));
+  }
+
   async function show() {
     const root = document.getElementById('tab-caddy');
     if (!root) return;
     if (!data) {
       root.innerHTML = '<div class="cd-card text-center text-sm cd-muted">⛳ El Caddy está leyendo tus datos de Garmin…</div>';
       try {
-        const r = await fetch('/caddy-data.json', { cache: 'no-store' });
+        const [r, rc] = await Promise.all([
+          fetch('/caddy-data.json', { cache: 'no-store' }),
+          fetch('/caddy-campos.json', { cache: 'no-store' }).catch(() => null),
+        ]);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         data = await r.json();
+        if (rc && rc.ok) { try { campos = (await rc.json()).courses || []; } catch (e) { campos = []; } }
       } catch (err) {
         root.innerHTML = `<div class="cd-card text-center text-sm text-rose-300">No pude cargar los datos del Caddy (${String(err.message || err)}). Revisa la conexión y vuelve a entrar.</div>`;
         return;
       }
     }
-    if (!rendered) { loadBag(); render(root); rendered = true; }
-    requestAnimationFrame(() => animateIn(root));
+    if (!rendered) { loadBag(); paint(); rendered = true; return; }
+    const body = document.getElementById('cdBody');
+    if (body && courseKey === 'huerta') requestAnimationFrame(() => animateIn(body));
   }
 
   window.CaddyPTC = { show };

@@ -31,6 +31,15 @@ BASE = "https://connectapi.garmin.com/gcs-golfcommunity/api/v2"
 UA = "GCM-iOS-5.7.2.1"
 SEMI = 180 / 2**31  # semicírculos de Garmin → grados
 INSIDE = 30  # metros: frontera del juego corto
+# El plan hoyo por hoyo con golpe por golpe es de La Huerta; las rondas en otros
+# campos se listan en el progreso pero no mezclan su tarjeta con la de La Huerta.
+HOME = "huerta"
+# Rondas que no fueron el juego de Paulo: se ven en el progreso, marcadas, pero no
+# entran a los promedios ni a las distancias del Caddy. (El handicap lo calcula
+# Garmin y ahí ya quedó contada.) Clave: (fecha, n-ésima ronda de ese día).
+EXCLUDE = {
+    ("2026-11-16", 2): "Otra persona jugó los 9 hoyos con tu reloj",
+}
 
 
 def session():
@@ -68,13 +77,19 @@ def main():
     rounds, holes = [], []
     full_shots, club_shots = [], defaultdict(list)
     course = None
+    summaries = sorted(summaries, key=lambda s: s.get("startTime") or "")
+    per_day = defaultdict(int)
     for s in summaries:
         det = get("/scorecard/detail", **{"scorecard-ids": str(s["id"]), "include-longest-shot-distance": "true"})
         d = det["scorecardDetails"][0]
         sc = d["scorecard"]
         snap = det["courseSnapshots"][0]
         pars = snap["holePars"]
-        if course is None:
+        day = (sc.get("formattedStartTime") or sc["startTime"])[:10]
+        per_day[day] += 1
+        skip = EXCLUDE.get((day, per_day[day]))
+        home = HOME in (snap.get("name") or "").lower()
+        if course is None and home:
             tee = next((t for t in snap.get("tees", []) if t.get("name") == sc.get("teeBox")), (snap.get("tees") or [{}])[0])
             course = {
                 "name": snap["name"],
@@ -94,7 +109,11 @@ def main():
             "par": par_played,
             "overPerHole": round((sc["strokes"] - par_played) / len(played), 2) if played else None,
             "longest": round(d.get("longestShotInMeters") or 0),
+            **({} if home else {"course": snap.get("name")}),
+            **({"excluded": skip} if skip else {}),
         })
+        if skip or not home:
+            continue
 
         shots = get(f"/shot/scorecard/{s['id']}/hole",
                     **{"hole-numbers": "-".join(str(i) for i in range(1, 19)), "image-size": "IMG_730X730"})
@@ -171,7 +190,7 @@ def main():
     save_p4 = round(max(0, (p4["avgStrokes"] or 0) - 5.5) * n4, 1)
     save_damage = round(blowups / max(len(holes), 1) * 9 * 1.5, 1)
 
-    nine = [r for r in rounds if r["holes"] == 9]
+    nine = [r for r in rounds if r["holes"] == 9 and not r.get("excluded") and not r.get("course")]
     avg9 = mean((r["strokes"] for r in nine), 0) if nine else round((p3["avgStrokes"] * n3 + p4["avgStrokes"] * n4))
 
     plan = []
@@ -240,7 +259,7 @@ def main():
         "updated": datetime.now(timezone.utc).isoformat(timespec="minutes"),
         "handicap": hi,
         "courseHandicap18": ch18,
-        "rounds": sorted(rounds, key=lambda r: r["date"]),
+        "rounds": rounds,
         "numRounds": stats.get("numRounds"),
         "holesWithShots": len(holes),
         "course": {k: course[k] for k in ("name", "city", "par18", "rating18", "slope")},

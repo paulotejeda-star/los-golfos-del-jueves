@@ -1,4 +1,4 @@
-const CACHE_NAME = 'golfos-jueves-v3';
+const CACHE_NAME = 'golfos-jueves-v4';
 const ASSETS = [
   '/',
   '/manifest.json',
