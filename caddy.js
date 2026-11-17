@@ -145,6 +145,9 @@
 
   // ---------- bolsa y palo sugerido ----------
   let bag = [];
+  // Factor de distancia del campo: tus palos están medidos en Puebla (~2,100 m); al nivel
+  // del mar la bola vuela menos, así que el plan descuenta ese porcentaje.
+  let distScale = 1;
   function loadBag() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(BAG_KEY) || '{}') || {}; } catch (e) { saved = {}; }
@@ -158,6 +161,7 @@
   // Un palo más: el más corto que llega y luego el siguiente más largo, porque tu
   // fallo es quedarte corto. Tope en el Hierro 4: las maderas no son para tirar a green.
   function clubFor(dist) {
+    dist /= distScale;
     const byLen = [...bag].sort((a, b) => a.m - b.m);
     const i = byLen.findIndex((c) => c.m >= dist);
     if (i < 0) return byLen[byLen.length - 1];
@@ -167,6 +171,7 @@
   }
   // El palo justo: el más corto que alcanza (para cuando ya mediste lo que te falta)
   function clubExact(dist) {
+    dist /= distScale;
     const byLen = [...bag].sort((a, b) => a.m - b.m);
     return byLen.find((c) => c.m >= dist) || byLen[byLen.length - 1];
   }
@@ -196,9 +201,10 @@
       if (left <= 30 && (chipFirst || steps.length)) {
         steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 });
         left = 0;
-      } else if (left > st.m) {
-        left -= st.m;
-        steps.push({ label, club: st.name, shot: st.m, left });
+      } else if (left > st.m * distScale) {
+        const m = Math.round(st.m * distScale);
+        left -= m;
+        steps.push({ label, club: st.name, shot: m, left });
       } else {
         steps.push({ label: 'Al green', club: (exact ? clubExact(left) : clubFor(left)).name, shot: left, left: 0 });
         left = 0;
@@ -626,7 +632,7 @@
     if (!bag.length) return [];
     const labels = ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto'];
     const cap = bag.find((c) => c.name === 'Hierro 4');
-    if (h.par === 3 && (!cap || h.len <= cap.m)) return [{ label: 'Salida al centro del green', club: clubFor(h.len).name, shot: h.len, left: 0 }];
+    if (h.par === 3 && (!cap || h.len <= cap.m * distScale)) return [{ label: 'Salida al centro del green', club: clubFor(h.len).name, shot: h.len, left: 0 }];
     return stepsFrom(h.len, labels, false);
   }
   function courseTip(h, ch) {
@@ -643,6 +649,7 @@
   function renderSwitch(box) {
     const all = [{ key: 'huerta', name: data.course.name, short: 'La Huerta' }]
       .concat(campos.map((c) => ({ key: c.key, name: c.name, short: c.name.split(' · ')[0].replace('Club ', '').replace(' Golf & Country Club', '') })));
+    all.sort((a, b) => (a.key === 'huerta' ? -1 : b.key === 'huerta' ? 1 : 0));
     if (!all.some((c) => c.key === courseKey)) courseKey = 'huerta';
     box.innerHTML = `
       <div class="flex gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Elige campo">
@@ -659,6 +666,7 @@
 
   let current = null; // { c, tee, plan, ch }
   function renderCourse(root, c) {
+    distScale = c.distFactor || 1;
     const tee = pickTee(c);
     const ch = courseHcp(tee);
     const plan = coursePlan(c, tee);
@@ -672,6 +680,7 @@
         <div class="cd-kicker">🎯 Caddy PTC · plan de campo</div>
         <h2 class="text-xl font-extrabold text-white leading-tight mt-1">${c.name}</h2>
         <p class="text-xs cd-muted mt-0.5">${c.city} · par 72 · aún sin rondas tuyas en Garmin aquí</p>
+        ${c.distNote ? `<p class="text-[11px] text-sky-300 mt-1">🌊 ${c.distNote}</p>` : ''}
         <div class="flex gap-2 overflow-x-auto no-scrollbar mt-3" role="group" aria-label="Salida">
           ${c.tees.map((t) => `<button type="button" class="cd-hole-btn shrink-0 px-3 text-xs whitespace-nowrap" data-tee="${t.name}" aria-pressed="${t.name === tee.name}">${t.es} · ${fmt0(t.yd.reduce((a, b) => a + b, 0))} yd</button>`).join('')}
         </div>
@@ -719,7 +728,7 @@
           <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver a la tabla</button>
         </div>
         <div id="cdBag" class="space-y-1.5 mt-3"></div>
-        <p class="text-[11px] cd-muted mt-3 leading-snug">Si ajustas un palo, el plan de todos los campos se recalcula.</p>
+        <p class="text-[11px] cd-muted mt-3 leading-snug">Distancias medidas en Puebla.${c.distFactor && c.distFactor !== 1 ? ` En este campo el plan las toma al ${Math.round(c.distFactor * 100)}%: tu hierro 7 de ${(bag.find((b) => b.name === 'Hierro 7') || {}).m || 137} m aquí es de ${Math.round(((bag.find((b) => b.name === 'Hierro 7') || {}).m || 137) * c.distFactor)} m.` : ''} Si ajustas un palo, el plan de todos los campos se recalcula.</p>
       </div>
 
       <p class="text-[10px] cd-muted text-center pb-2">Tarjeta oficial de ${c.name} (par, ventaja y yardas por salida, fuente ${c.source}). Cuando juegues aquí con el reloj, el Caddy sumará tus golpes reales.</p>`;
@@ -774,6 +783,7 @@
     const body = document.getElementById('cdBody');
     const c = campos.find((x) => x.key === courseKey);
     if (c) { renderCourse(body, c); return; }
+    distScale = 1;
     render(body);
     requestAnimationFrame(() => animateIn(body));
   }
