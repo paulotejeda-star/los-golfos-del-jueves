@@ -251,6 +251,9 @@
     const noData = (d.strokesGained || []).filter((s) => s.you == null).map((s) => s.name);
 
     const updated = new Date(d.updated);
+    // La mejor ronda de 9 hoyos que sí fue tu juego, en La Huerta
+    const bestRound = d.rounds.filter((r) => r.holes === 9 && !r.excluded && !r.course)
+      .reduce((b, r) => (!b || r.strokes < b.strokes ? r : b), null);
     const updatedTxt = `${updated.getDate()}-${MONTHS[updated.getMonth()]}-${updated.getFullYear()}`;
 
     root.innerHTML = `
@@ -380,13 +383,16 @@
           ${d.rounds.map((r) => {
             const max = Math.max(...d.rounds.map((x) => x.overPerHole || 0), 1);
             const off = r.excluded || r.course;
+            const isBest = r === bestRound;
             return `<div class="flex-1 flex flex-col items-center justify-end h-full" title="${off ? (r.excluded || r.course) : ''}">
               <span class="text-[10px] font-bold ${r.excluded ? 'text-slate-500 line-through' : 'text-slate-100'} cd-big">+${fmt1(r.overPerHole)}</span>
-              <div class="cd-col w-full rounded-t-md ${r.excluded ? 'bg-slate-600/60 border border-dashed border-slate-400' : r.course ? 'bg-gradient-to-t from-sky-700 to-sky-400' : 'bg-gradient-to-t from-amber-600 to-amber-300'}" data-h="${(r.overPerHole / max) * 78}"></div>
-              <span class="text-[9px] cd-muted mt-1 text-center leading-tight">${shortDate(r.date)}<br>${r.excluded ? 'no fue tu juego' : `${r.holes} h`}</span>
+              ${isBest ? '<span class="text-[11px] cd-pop" aria-label="Tu mejor ronda de 9 hoyos">🏆</span>' : ''}
+              <div class="cd-col w-full rounded-t-md ${r.excluded ? 'bg-slate-600/60 border border-dashed border-slate-400' : isBest ? 'bg-gradient-to-t from-emerald-600 to-emerald-300' : r.course ? 'bg-gradient-to-t from-sky-700 to-sky-400' : 'bg-gradient-to-t from-amber-600 to-amber-300'}" data-h="${(r.overPerHole / max) * 78}"></div>
+              <span class="text-[9px] cd-muted mt-1 text-center leading-tight">${shortDate(r.date)}<br>${r.excluded ? 'no fue tu juego' : isBest ? `<b class="text-emerald-300">${r.strokes} golpes</b>` : `${r.holes} h`}</span>
             </div>`;
           }).join('')}
         </div>
+        ${bestRound ? `<p class="text-[11px] text-emerald-300 mt-2">🏆 Tu mejor ronda de 9 hoyos: ${bestRound.strokes} golpes el ${shortDate(bestRound.date)} (par ${bestRound.par}).</p>` : ''}
         ${d.rounds.some((r) => r.excluded) ? `<p class="text-[11px] text-slate-400 mt-2">Barra gris punteada: ${d.rounds.filter((r) => r.excluded).map((r) => `${shortDate(r.date)} · ${r.excluded}`).join('; ')}. Garmin sí la contó en tu handicap; el Caddy la deja fuera de tus promedios y distancias.</p>` : ''}
         ${d.rounds.some((r) => r.course) ? '<p class="text-[11px] text-sky-300/80 mt-1">Barra azul: ronda en otro campo.</p>' : ''}
         <p class="text-[11px] cd-muted mt-2">Para bajar tu handicap, esta barra tiene que llegar a +${fmt1((d.personalPar9 - d.par9) / 9)} por hoyo (tu par personal).</p>
