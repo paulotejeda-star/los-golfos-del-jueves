@@ -670,13 +670,54 @@
     }));
   }
 
-  let current = null; // { c, tee, plan, ch }
+  // Tus rondas de Garmin en este campo (la tarjeta liga por su nombre en Garmin)
+  const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function roundsOn(c) {
+    if (!c.garmin) return [];
+    return data.rounds.filter((r) => r.course && !r.excluded && Array.isArray(r.perHole) && norm(r.course).includes(norm(c.garmin)));
+  }
+  function renderMyRound(r, plan) {
+    const max = Math.max(...plan.map((h, i) => Math.max(r.perHole[i] || 0, h.personalPar))) + 0.5;
+    const pp = plan.reduce((a, h, i) => a + (r.perHole[i] ? h.personalPar : 0), 0);
+    const hits = plan.filter((h, i) => r.perHole[i] && r.perHole[i] <= h.personalPar).length;
+    const half = (a, b) => r.perHole.slice(a, b).reduce((s, v) => s + (v || 0), 0);
+    return `
+      <div class="cd-card cd-reveal cd-in">
+        <div class="cd-kicker">Tu ronda real · ${shortDate(r.date)}</div>
+        <p class="text-sm text-white font-semibold mt-1">${r.strokes} golpes en ${r.holes} hoyos (par ${r.par}) contra tu par personal de ${pp}</p>
+        <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-rose-300 cd-big">${r.strokes}</div><div class="text-[10px] cd-muted leading-tight">tus golpes<br>ese día</div></div>
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-emerald-300 cd-big">${hits}</div><div class="text-[10px] cd-muted leading-tight">hoyos en tu par<br>personal o mejor</div></div>
+          <div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold text-white cd-big">${half(0, 9)} · ${half(9, 18)}</div><div class="text-[10px] cd-muted leading-tight">ida · vuelta</div></div>
+        </div>
+        <p class="text-xs font-bold text-white mt-4">Tus golpes contra tu par personal, por hoyo</p>
+        <div class="flex items-end gap-0.5 sm:gap-1 h-32 mt-2">
+          ${plan.map((h, i) => {
+            const v = r.perHole[i];
+            const over = v > h.personalPar;
+            return `<button type="button" class="flex-1 min-w-0 flex flex-col items-center justify-end h-full" data-chole="${h.n}" aria-label="Hoyo ${h.n}: ${v || 'sin dato'} golpes, par personal ${h.personalPar}">
+              <span class="text-[9px] font-bold ${over ? 'text-rose-300' : 'text-emerald-300'} cd-big">${v || 's/d'}</span>
+              <div class="w-full relative flex items-end" style="height:78%">
+                <div class="absolute left-0 right-0 z-10 border-t-2 border-dashed border-emerald-200" style="bottom:${(h.personalPar / max) * 100}%"></div>
+                <div class="w-full rounded-t-sm ${over ? 'bg-gradient-to-t from-rose-600 to-rose-400' : 'bg-gradient-to-t from-emerald-600 to-emerald-400'}" style="height:${((v || 0) / max) * 100}%"></div>
+              </div>
+              <span class="text-[9px] cd-muted mt-1">${h.n}</span>
+            </button>`;
+          }).join('')}
+        </div>
+        <p class="text-[10px] cd-muted mt-1">Golpes de Garmin${r.tee ? ` (salida ${({ Mens: 'de caballeros', Ladies: 'de damas' })[r.tee] || r.tee})` : ''}. Línea punteada = tu par personal desde la salida elegida arriba. Barra roja = ahí te pasaste de tu meta.</p>
+      </div>`;
+  }
+
+  let current = null; // { c, tee, plan, ch, mine }
   function renderCourse(root, c) {
     distScale = c.distFactor || 1;
     const tee = pickTee(c);
     const ch = courseHcp(tee);
     const plan = coursePlan(c, tee);
-    current = { c, tee, plan, ch };
+    const mine = roundsOn(c);
+    const last = mine[mine.length - 1] || null;
+    current = { c, tee, plan, ch, last };
     const sum = (arr, k) => Math.round(arr.reduce((a, h) => a + h[k], 0));
     const front = plan.slice(0, 9);
     const back = plan.slice(9);
@@ -685,7 +726,7 @@
         <div class="absolute -right-16 -top-16 w-56 h-56 rounded-full bg-sky-500/10 blur-2xl" aria-hidden="true"></div>
         <div class="cd-kicker">🎯 Caddy PTC · plan de campo</div>
         <h2 class="text-xl font-extrabold text-white leading-tight mt-1">${c.name}</h2>
-        <p class="text-xs cd-muted mt-0.5">${c.city} · par 72 · aún sin rondas tuyas en Garmin aquí</p>
+        <p class="text-xs cd-muted mt-0.5">${c.city} · par 72 · ${last ? `${mine.length === 1 ? 'tu ronda' : `${mine.length} rondas tuyas; la última`} del ${shortDate(last.date)}: <b class="text-rose-300">${last.strokes} golpes</b>` : 'aún sin rondas tuyas en Garmin aquí'}</p>
         ${c.distNote ? `<p class="text-[11px] text-sky-300 mt-1">🌊 ${c.distNote}</p>` : ''}
         <div class="flex gap-2 overflow-x-auto no-scrollbar mt-3" role="group" aria-label="Salida">
           ${c.tees.map((t) => `<button type="button" class="cd-hole-btn shrink-0 px-3 text-xs whitespace-nowrap" data-tee="${t.name}" aria-pressed="${t.name === tee.name}">${t.es} · ${fmt0(t.yd.reduce((a, b) => a + b, 0))} yd</button>`).join('')}
@@ -728,6 +769,8 @@
         </div>
       </div>
 
+      ${last ? renderMyRound(last, plan) : ''}
+
       <div class="cd-card cd-reveal cd-in">
         <div class="flex items-center justify-between gap-2">
           <div class="cd-kicker">Tu bolsa · la misma de La Huerta</div>
@@ -737,7 +780,7 @@
         <p class="text-[11px] cd-muted mt-3 leading-snug">Distancias medidas en Puebla.${c.distFactor && c.distFactor !== 1 ? ` En este campo el plan las toma al ${Math.round(c.distFactor * 100)}%: tu hierro 7 de ${(bag.find((b) => b.name === 'Hierro 7') || {}).m || 137} m aquí es de ${Math.round(((bag.find((b) => b.name === 'Hierro 7') || {}).m || 137) * c.distFactor)} m.` : ''} Si ajustas un palo, el plan de todos los campos se recalcula.</p>
       </div>
 
-      <p class="text-[10px] cd-muted text-center pb-2">Tarjeta oficial de ${c.name} (par, ventaja y yardas por salida, fuente ${c.source}). Cuando juegues aquí con el reloj, el Caddy sumará tus golpes reales.</p>`;
+      <p class="text-[10px] cd-muted text-center pb-2">Tarjeta oficial de ${c.name} (par, ventaja y yardas por salida, fuente ${c.source}). ${last ? 'Tus golpes reales salen de Garmin Golf.' : 'Cuando juegues aquí con el reloj, el Caddy sumará tus golpes reales.'}</p>`;
 
     root.querySelectorAll('[data-tee]').forEach((b) => b.addEventListener('click', () => {
       try { localStorage.setItem(TEE_KEY + c.key, b.dataset.tee); } catch (e) { /* nada */ }
@@ -772,6 +815,7 @@
             <span class="font-extrabold text-white cd-big">${fmt0(h.len)} m <span class="text-emerald-300">· ${yd(h.len)} yd</span></span>
           </div>
           <p class="text-[11px] cd-muted mt-2">Dificultad ${h.index} de 18 (1 es el más difícil) · te da ${h.personalPar - h.par} golpe${h.personalPar - h.par === 1 ? '' : 's'}</p>
+          ${current.last && current.last.perHole[h.n - 1] ? `<p class="text-[11px] mt-1 ${current.last.perHole[h.n - 1] > h.personalPar ? 'text-rose-300' : 'text-emerald-300'}">Tu ronda del ${shortDate(current.last.date)}: ${current.last.perHole[h.n - 1]} golpes en este hoyo</p>` : ''}
           <p class="text-sm text-slate-100 mt-2 leading-snug">💬 ${courseTip(h, ch)}</p>
         </div>
       </div>

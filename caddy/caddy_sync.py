@@ -21,6 +21,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import garth
+import requests
+
+# garth baja sus llaves de S3 sin límite de tiempo y el 19-nov se quedó colgado ahí:
+# toda llamada lleva 30 s de tope para que falle con error en vez de esperar para siempre.
+_request = requests.Session.request
+requests.Session.request = lambda self, *a, **k: _request(self, *a, **{"timeout": 30, **k})
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parent / "caddy-data.json"
@@ -109,7 +115,8 @@ def main():
             "par": par_played,
             "overPerHole": round((sc["strokes"] - par_played) / len(played), 2) if played else None,
             "longest": round(d.get("longestShotInMeters") or 0),
-            **({} if home else {"course": snap.get("name")}),
+            **({} if home else {"course": snap.get("name"), "tee": sc.get("teeBox"),
+                                 "perHole": [h.get("strokes") for h in sorted(sc["holes"], key=lambda h: h["number"])]}),
             **({"excluded": skip} if skip else {}),
         })
         if skip or not home:

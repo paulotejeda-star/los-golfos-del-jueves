@@ -1,8 +1,8 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-17T02:26+00:00",
- "handicap": 48.17,
- "courseHandicap18": 27,
+ "updated": "2026-11-20T03:50+00:00",
+ "handicap": 45.2,
+ "courseHandicap18": 25,
  "rounds": [
   {
    "date": "2026-10-06",
@@ -76,9 +76,39 @@
    "overPerHole": 3.0,
    "longest": 105,
    "excluded": "Otra persona jugó los 9 hoyos con tu reloj"
+  },
+  {
+   "date": "2026-11-18",
+   "holes": 18,
+   "strokes": 123,
+   "par": 72,
+   "overPerHole": 2.83,
+   "longest": 241,
+   "course": "Punta Tiburon Residencial Marina & Golf",
+   "tee": "Mens",
+   "perHole": [
+    6,
+    6,
+    6,
+    8,
+    8,
+    6,
+    6,
+    5,
+    8,
+    6,
+    5,
+    7,
+    8,
+    10,
+    7,
+    8,
+    5,
+    8
+   ]
   }
  ],
- "numRounds": 9,
+ "numRounds": 10,
  "holesWithShots": 62,
  "course": {
   "name": "La Huerta Golf & Hotel",
@@ -87,13 +117,13 @@
   "rating18": 52.61,
   "slope": 76
  },
- "personalPar9": 42,
+ "personalPar9": 41,
  "par9": 29,
  "avg9": 49.0,
  "fairway": {
-  "percentFairwayLeft": 23.08,
-  "percentFairwayRight": 38.46,
-  "percentFairwayHit": 38.46,
+  "percentFairwayLeft": 22.22,
+  "percentFairwayRight": 48.15,
+  "percentFairwayHit": 29.63,
   "percentGir": 0.0,
   "puttsPerHole": 1.0
  },
@@ -101,23 +131,23 @@
   {
    "key": "DRIVE",
    "name": "Salida",
-   "you": -0.72,
+   "you": -0.53,
    "group": -0.46,
-   "trend": "DOWN"
+   "trend": "EVEN"
   },
   {
    "key": "APPROACH",
    "name": "Aproximación",
-   "you": -0.39,
+   "you": -0.36,
    "group": -0.48,
    "trend": "EVEN"
   },
   {
    "key": "CHIP",
    "name": "Chip",
-   "you": -0.65,
+   "you": -0.57,
    "group": -0.51,
-   "trend": "EVEN"
+   "trend": "UP"
   },
   {
    "key": "PUTT",
@@ -136,7 +166,7 @@
   {
    "key": "RECOVERY",
    "name": "Recuperación",
-   "you": -0.37,
+   "you": -0.3,
    "group": -0.35,
    "trend": "EVEN"
   }
@@ -271,7 +301,7 @@
    "n": 9,
    "par": 3,
    "index": 8,
-   "personalPar": 5,
+   "personalPar": 4,
    "len": 106,
    "avg": 4.8,
    "best": 4,
