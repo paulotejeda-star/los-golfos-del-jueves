@@ -1,6 +1,6 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-20T03:50+00:00",
+ "updated": "2026-11-22T20:45+00:00",
  "handicap": 45.2,
  "courseHandicap18": 25,
  "rounds": [
@@ -106,10 +106,26 @@
     5,
     8
    ]
+  },
+  {
+   "date": "2026-11-22",
+   "holes": 9,
+   "strokes": 45,
+   "par": 29,
+   "overPerHole": 1.78,
+   "longest": 113
+  },
+  {
+   "date": "2026-11-22",
+   "holes": 9,
+   "strokes": 45,
+   "par": 29,
+   "overPerHole": 1.78,
+   "longest": 175
   }
  ],
- "numRounds": 10,
- "holesWithShots": 62,
+ "numRounds": 12,
+ "holesWithShots": 80,
  "course": {
   "name": "La Huerta Golf & Hotel",
   "city": "Zerezotla",
@@ -119,33 +135,31 @@
  },
  "personalPar9": 41,
  "par9": 29,
- "avg9": 49.0,
+ "avg9": 48.0,
  "fairway": {
-  "percentFairwayLeft": 22.22,
-  "percentFairwayRight": 48.15,
-  "percentFairwayHit": 29.63,
-  "percentGir": 0.0,
-  "puttsPerHole": 1.0
+  "percentFairwayLeft": 20.0,
+  "percentFairwayRight": 52.0,
+  "percentFairwayHit": 28.0
  },
  "strokesGained": [
   {
    "key": "DRIVE",
    "name": "Salida",
-   "you": -0.53,
+   "you": -0.52,
    "group": -0.46,
-   "trend": "EVEN"
+   "trend": "UP"
   },
   {
    "key": "APPROACH",
    "name": "Aproximación",
-   "you": -0.36,
+   "you": -0.35,
    "group": -0.48,
    "trend": "EVEN"
   },
   {
    "key": "CHIP",
    "name": "Chip",
-   "you": -0.57,
+   "you": -0.58,
    "group": -0.51,
    "trend": "UP"
   },
@@ -159,46 +173,46 @@
   {
    "key": "BUNKER",
    "name": "Bunker",
-   "you": -0.83,
+   "you": -0.8,
    "group": -0.43,
    "trend": "UNKNOWN"
   },
   {
    "key": "RECOVERY",
    "name": "Recuperación",
-   "you": -0.3,
+   "you": -0.23,
    "group": -0.35,
-   "trend": "EVEN"
+   "trend": "UP"
   }
  ],
  "par3": {
-  "n": 49,
-  "avgStrokes": 4.9,
-  "holeLen": 92.0,
-  "teeDist": 74.0,
+  "n": 63,
+  "avgStrokes": 4.84,
+  "holeLen": 93.0,
+  "teeDist": 76.0,
   "leftToPin": 22.0,
-  "teeOnGreen": 13,
-  "teeRough": 22,
-  "teeBunker": 3,
-  "insideAvg": 3.47
+  "teeOnGreen": 18,
+  "teeRough": 27,
+  "teeBunker": 4,
+  "insideAvg": 3.42
  },
  "par4": {
-  "n": 13,
-  "avgStrokes": 6.08,
-  "holeLen": 215.0,
-  "teeDist": 76.0,
-  "leftToPin": 149.0,
+  "n": 17,
+  "avgStrokes": 6.12,
+  "holeLen": 214.0,
+  "teeDist": 82.0,
+  "leftToPin": 145.0,
   "teeOnGreen": 0,
-  "teeRough": 9,
+  "teeRough": 10,
   "teeBunker": 0,
-  "insideAvg": 1.62
+  "insideAvg": 1.73
  },
  "blowups": 7,
  "savings": {
   "tee3": 0.9,
-  "short": 3.3,
+  "short": 2.9,
   "par4": 1.2,
-  "damage": 1.5
+  "damage": 1.2
  },
  "plan": [
   {
@@ -207,9 +221,9 @@
    "index": 4,
    "personalPar": 6,
    "len": 219,
-   "avg": 5.8,
+   "avg": 5.9,
    "best": 4,
-   "times": 5,
+   "times": 7,
    "tee": 73.0,
    "inside": 1.4
   },
@@ -219,35 +233,35 @@
    "index": 16,
    "personalPar": 4,
    "len": 75,
-   "avg": 4.9,
+   "avg": 4.7,
    "best": 3,
-   "times": 8,
-   "tee": 72.0,
-   "inside": 3.8
+   "times": 10,
+   "tee": 75.0,
+   "inside": 3.4
   },
   {
    "n": 3,
    "par": 3,
    "index": 6,
    "personalPar": 5,
-   "len": 112,
-   "avg": 6,
+   "len": 113,
+   "avg": 5.5,
    "best": 3,
-   "times": 6,
-   "tee": 73.0,
-   "inside": 4.2
+   "times": 8,
+   "tee": 74.0,
+   "inside": 3.8
   },
   {
    "n": 4,
    "par": 3,
    "index": 18,
    "personalPar": 4,
-   "len": 72,
-   "avg": 4.6,
+   "len": 74,
+   "avg": 4.7,
    "best": 3,
-   "times": 7,
-   "tee": 49.0,
-   "inside": 3
+   "times": 9,
+   "tee": 55.0,
+   "inside": 3.2
   },
   {
    "n": 5,
@@ -255,11 +269,11 @@
    "index": 12,
    "personalPar": 4,
    "len": 96,
-   "avg": 4.4,
+   "avg": 4.7,
    "best": 3,
-   "times": 7,
-   "tee": 74.0,
-   "inside": 2.9
+   "times": 9,
+   "tee": 73.0,
+   "inside": 3.1
   },
   {
    "n": 6,
@@ -267,23 +281,23 @@
    "index": 2,
    "personalPar": 6,
    "len": 210,
-   "avg": 6.2,
+   "avg": 6.3,
    "best": 4,
-   "times": 8,
-   "tee": 79.0,
-   "inside": 1.8
+   "times": 10,
+   "tee": 87.0,
+   "inside": 1.9
   },
   {
    "n": 7,
    "par": 3,
    "index": 10,
    "personalPar": 4,
-   "len": 98,
+   "len": 100,
    "avg": 4.9,
    "best": 3,
-   "times": 8,
-   "tee": 87.0,
-   "inside": 3.4
+   "times": 10,
+   "tee": 90.0,
+   "inside": 3.5
   },
   {
    "n": 8,
@@ -291,11 +305,11 @@
    "index": 14,
    "personalPar": 4,
    "len": 86,
-   "avg": 4.9,
+   "avg": 4.8,
    "best": 4,
-   "times": 7,
-   "tee": 88.0,
-   "inside": 3.7
+   "times": 9,
+   "tee": 82.0,
+   "inside": 3.4
   },
   {
    "n": 9,
@@ -305,21 +319,40 @@
    "len": 106,
    "avg": 4.8,
    "best": 4,
-   "times": 6,
-   "tee": 78.0,
-   "inside": 3.5
+   "times": 8,
+   "tee": 79.0,
+   "inside": 3.4
   }
  ],
  "clubs": [
   {
    "name": "Driver",
    "m": 200,
-   "source": "estimado"
+   "source": "estimado",
+   "model": "M4",
+   "dictated": {
+    "n": 15,
+    "median": 151,
+    "best": 241,
+    "byCourse": {
+     "La Huerta": 4,
+     "Punta Tiburón": 11
+    }
+   }
   },
   {
    "name": "Madera 3",
    "m": 180,
-   "source": "estimado"
+   "source": "estimado",
+   "dictated": {
+    "n": 1,
+    "range": "de 100 a 120 m",
+    "median": 110,
+    "best": 110,
+    "byCourse": {
+     "La Huerta": 1
+    }
+   }
   },
   {
    "name": "Hierro 4",
@@ -373,9 +406,9 @@
   }
  ],
  "fullShots": {
-  "n": 66,
-  "p50": 79,
-  "p75": 96,
+  "n": 83,
+  "p50": 80,
+  "p75": 100,
   "p90": 113,
   "max": 159
  },

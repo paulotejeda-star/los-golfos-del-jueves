@@ -370,6 +370,13 @@
           <button type="button" id="cdBagReset" class="text-[11px] text-emerald-300 underline">Volver a la tabla</button>
         </div>
         <div id="cdBag" class="space-y-1.5 mt-3"></div>
+        ${(data.clubs || []).filter((c) => c.dictated).map((c) => {
+          const r = c.dictated;
+          const donde = Object.entries(r.byCourse).map(([w, n]) => `${n} en ${w}`).join(', ');
+          return r.n >= 3
+            ? `<p class="text-[11px] text-emerald-300 mt-3 leading-snug"><b>${c.name}${c.model ? ` ${c.model}` : ''}, tus golpes reales:</b> ${r.n} salidas (${donde}). La mediana es ${r.median} m / ${yd(r.median)} yd y la mejor ${r.best} m / ${yd(r.best)} yd. El plan sigue con ${c.m} m de la tabla.</p>`
+            : `<p class="text-[11px] text-emerald-300 mt-1 leading-snug"><b>${c.name}:</b> ${r.n} golpe${r.n === 1 ? '' : 's'} anotado${r.n === 1 ? '' : 's'} (${donde}), ${r.range || `${r.median} m`} según lo que anotaste. Con 3 o más ya sale su distancia.</p>`;
+        }).join('')}
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
           ? `Distancias de la tabla de referencia por palo que mandaste: hierro 9 a 119 m y entre un hierro y otro hay de 9 a 10 m. La tabla no trae maderas: la madera 3 (180 m) y el driver (200 m) son la medida típica de ese mismo jugador. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
           : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
@@ -379,18 +386,20 @@
       <div class="cd-card cd-reveal">
         <div class="cd-kicker">Tu progreso</div>
         <p class="text-sm text-white font-semibold mt-1">Golpes sobre par por hoyo en cada ronda (más bajo es mejor)</p>
-        <div class="flex items-end gap-2 h-36 mt-3">
+        <div id="cdProgress" class="overflow-x-auto overflow-y-hidden mt-3">
+        <div class="flex items-end gap-2 h-36" style="min-width:${d.rounds.length * 38}px">
           ${d.rounds.map((r) => {
             const max = Math.max(...d.rounds.map((x) => x.overPerHole || 0), 1);
             const off = r.excluded || r.course;
             const isBest = r === bestRound;
-            return `<div class="flex-1 flex flex-col items-center justify-end h-full" title="${off ? (r.excluded || r.course) : ''}">
+            return `<div class="flex-1 min-w-0 flex flex-col items-center justify-end h-full" title="${off ? (r.excluded || r.course) : ''}">
               <span class="text-[10px] font-bold ${r.excluded ? 'text-slate-500 line-through' : 'text-slate-100'} cd-big">+${fmt1(r.overPerHole)}</span>
               ${isBest ? '<span class="text-[11px] cd-pop" aria-label="Tu mejor ronda de 9 hoyos">🏆</span>' : ''}
               <div class="cd-col w-full rounded-t-md ${r.excluded ? 'bg-slate-600/60 border border-dashed border-slate-400' : isBest ? 'bg-gradient-to-t from-emerald-600 to-emerald-300' : r.course ? 'bg-gradient-to-t from-sky-700 to-sky-400' : 'bg-gradient-to-t from-amber-600 to-amber-300'}" data-h="${(r.overPerHole / max) * 78}"></div>
               <span class="text-[9px] cd-muted mt-1 text-center leading-tight">${shortDate(r.date)}<br>${r.excluded ? 'no fue tu juego' : isBest ? `<b class="text-emerald-300">${r.strokes} golpes</b>` : `${r.holes} h`}</span>
             </div>`;
           }).join('')}
+        </div>
         </div>
         ${bestRound ? `<p class="text-[11px] text-emerald-300 mt-2">🏆 Tu mejor ronda de 9 hoyos: ${bestRound.strokes} golpes el ${shortDate(bestRound.date)} (par ${bestRound.par}).</p>` : ''}
         ${d.rounds.some((r) => r.excluded) ? `<p class="text-[11px] text-slate-400 mt-2">Barra gris punteada: ${d.rounds.filter((r) => r.excluded).map((r) => `${shortDate(r.date)} · ${r.excluded}`).join('; ')}. Garmin sí la contó en tu handicap; el Caddy la deja fuera de tus promedios y distancias.</p>` : ''}
@@ -556,7 +565,7 @@
     const max = Math.max(...bag.map((c) => c.m), 1);
     box.innerHTML = bag.map((c, i) => `
       <div class="flex items-center gap-2">
-        <span class="w-20 text-xs font-bold text-white shrink-0">${c.name}</span>
+        <span class="w-20 text-xs font-bold text-white shrink-0">${c.name}${c.model ? ` ${c.model}` : ''}</span>
         <div class="flex-1 h-6 bg-[#0a2019] rounded-lg relative overflow-hidden">
           <div class="h-full rounded-lg bg-gradient-to-r from-emerald-700 to-emerald-400" style="width:${(c.m / max) * 100}%;transition:width .4s"></div>
           <span class="absolute inset-0 flex items-center pl-2 text-[11px] font-extrabold text-white cd-big">${c.m} m · ${yd(c.m)} yd${c.edited ? ' ✎' : ''}</span>
@@ -578,6 +587,9 @@
   }
 
   function animateIn(root) {
+    // Con muchas rondas la gráfica se desliza de lado: abre en las más recientes
+    const progress = document.getElementById('cdProgress');
+    if (progress) progress.scrollLeft = progress.scrollWidth;
     const ring = document.getElementById('cdRing');
     if (ring) ring.style.strokeDashoffset = String(314.16 * (1 - Math.min(1, data.handicap / 54)));
     countUp(document.getElementById('cdHcp'), data.handicap, 1, 1600);
