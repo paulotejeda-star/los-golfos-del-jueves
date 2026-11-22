@@ -178,6 +178,23 @@
   function steadyClub() {
     return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
   }
+  // Salida con el M4 a su distancia real (mediana de tus golpes). Si ajustaste el Driver en
+  // «Tu bolsa» manda tu ajuste. La mediana no se escala por campo: ya viene casi toda de
+  // nivel del mar. El Driver sigue fuera de clubFor: no es palo para tirar a green.
+  function driverTee() {
+    const c = bag.find((x) => x.name === 'Driver');
+    if (!c) return null;
+    const real = c.dictated && c.dictated.median;
+    return { name: `${c.name}${c.model ? ` ${c.model}` : ''}`, m: Math.round(!c.edited && real ? real : c.m * distScale) };
+  }
+  // Par 4 y 5: salida con el M4 y de ahí al green. Si el hoyo es más corto que tu salida,
+  // no hace falta el Driver y queda el plan con hierros.
+  function longHoleSteps(len, labels) {
+    const d = driverTee();
+    if (!d || len <= d.m) return stepsFrom(len, labels, false);
+    const left = len - d.m;
+    return [{ label: labels[0], club: d.name, shot: d.m, left }, ...stepsFrom(left, labels.slice(1), true)];
+  }
   // Pasos del hoyo: palo, distancia del golpe y lo que queda al hoyo
   function holeSteps(h) {
     const len = h.len || 0;
@@ -186,9 +203,9 @@
       const c = clubFor(len);
       return [{ label: 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
     }
-    // Par 4: salida recta con el hierro 7; otro hierro 7 si todavía no alcanzas, y al
+    // Par 4: salida con el M4 (Paulo, 22-nov); hierro 7 si todavía no alcanzas, y al
     // green con un palo más (o chip rodado si quedan 30 m o menos).
-    return stepsFrom(len, ['Salida', 'Segundo', 'Tercero'], false);
+    return longHoleSteps(len, ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo']);
   }
   // Golpes desde una distancia: hierro 7 mientras no alcances, luego un palo más al
   // green, o chip rodado con hierro 8 si quedan 30 m o menos.
@@ -217,7 +234,10 @@
   function holeTip(h) {
     const right = data.fairway && data.fairway.percentFairwayRight;
     if (h.par === 4) {
-      return `Salida recta con el hierro 7, no con el driver, y al green con un palo más. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${h.personalPar}, ganaste el hoyo contra tu handicap.`;
+      const s = holeSteps(h);
+      const first = s[0] && /^Driver/.test(s[0].club) ? `Salida con tu ${s[0].club} a ${mYd(s[0].shot)}` : 'Salida recta';
+      const last = s.length ? s[s.length - 1].club.replace(/^Chip/, 'chip') : 'un palo más';
+      return `${first} y al green con ${last}. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${h.personalPar}, ganaste el hoyo contra tu handicap.`;
     }
     const short = (h.len || 0) - (h.tee || 0);
     if (short >= 12) {
@@ -238,7 +258,7 @@
         why: `Desde 30 m (33 yd) usas ${fmt1(d.par3.insideAvg)} golpes en los par 3. Un buen jugador de tu nivel usa 3. Chip rodado con hierro 8 y putt.` },
       { key: 'tee3', icon: '🏌️', title: 'Par 3: un palo más', save: sv.tee3,
         why: `Tus salidas promedian ${mYd(d.par3.teeDist)} en hoyos de ${mYd(d.par3.holeLen)}. Solo ${d.par3.teeOnGreen} de ${d.par3.n} cayeron en green; ${d.par3.teeRough} se fueron al rough.` },
-      { key: 'par4', icon: '↖️', title: 'Par 4: tres golpes rectos, apunta a la izquierda', save: sv.par4,
+      { key: 'par4', icon: '↖️', title: 'Par 4: M4 y wedge, apunta a la izquierda', save: sv.par4,
         why: `Promedias ${fmt1(d.par4.avgStrokes)} golpes en los par 4. ${pct(d.fairway.percentFairwayRight)} de tus salidas fallan a la derecha y ${pct(d.fairway.percentFairwayLeft)} a la izquierda.` },
       { key: 'damage', icon: '🛟', title: 'Control de daños: nada de golpes de héroe', save: sv.damage,
         why: `${d.blowups} de tus ${d.holesWithShots} hoyos terminaron en 4 o más sobre par. Desde problemas, saca de lado al fairway y olvida el árbol.` },
@@ -374,7 +394,7 @@
           const r = c.dictated;
           const donde = Object.entries(r.byCourse).map(([w, n]) => `${n} en ${w}`).join(', ');
           return r.n >= 3
-            ? `<p class="text-[11px] text-emerald-300 mt-3 leading-snug"><b>${c.name}${c.model ? ` ${c.model}` : ''}, tus golpes reales:</b> ${r.n} salidas (${donde}). La mediana es ${r.median} m / ${yd(r.median)} yd y la mejor ${r.best} m / ${yd(r.best)} yd. El plan sigue con ${c.m} m de la tabla.</p>`
+            ? `<p class="text-[11px] text-emerald-300 mt-3 leading-snug"><b>${c.name}${c.model ? ` ${c.model}` : ''}, tus golpes reales:</b> ${r.n} salidas (${donde}). La mediana es ${r.median} m / ${yd(r.median)} yd y la mejor ${r.best} m / ${yd(r.best)} yd. Tu plan de salida usa esa mediana; si ajustas el Driver con − y +, usa tu ajuste.</p>`
             : `<p class="text-[11px] text-emerald-300 mt-1 leading-snug"><b>${c.name}:</b> ${r.n} golpe${r.n === 1 ? '' : 's'} anotado${r.n === 1 ? '' : 's'} (${donde}), ${r.range || `${r.median} m`} según lo que anotaste. Con 3 o más ya sale su distancia.</p>`;
         }).join('')}
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
@@ -553,7 +573,7 @@
               </div>
             </li>`).join('')}
         </ol>
-        <p class="text-[10px] cd-muted mt-2">${h.par >= 4 || steps.length > 1 ? 'Salida recta con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
+        <p class="text-[10px] cd-muted mt-2">${/^Driver/.test(steps[0].club) ? 'Salida con el M4 a tu distancia real y al green con un palo más del que te alcanza.' : steps.length > 1 ? 'Golpes rectos con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
       </div>`;
   }
 
@@ -644,14 +664,15 @@
       return h;
     });
   }
-  // Menor número de golpes: par 3 al green si te alcanza un hierro; si no, y en par 4 y 5,
-  // golpes rectos con el hierro 7 hasta tener el green a tiro y entrar con un palo más.
+  // Menor número de golpes: par 3 al green si te alcanza un hierro; si no, golpes rectos con
+  // el hierro 7. En par 4 y 5, salida con el M4, hierro 7 si falta y al green con un palo más.
   function courseSteps(h) {
     if (!bag.length) return [];
-    const labels = ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto'];
+    const labels = ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo'];
     const cap = bag.find((c) => c.name === 'Hierro 4');
     if (h.par === 3 && (!cap || h.len <= cap.m * distScale)) return [{ label: 'Salida al centro del green', club: clubFor(h.len).name, shot: h.len, left: 0 }];
-    return stepsFrom(h.len, labels, false);
+    if (h.par === 3) return stepsFrom(h.len, labels, false);
+    return longHoleSteps(h.len, labels);
   }
   function courseTip(h, ch) {
     const right = data.fairway && data.fairway.percentFairwayRight;
@@ -661,7 +682,7 @@
     const sg = `desde 30 m gastas ${fmt1(shortGame())} golpes (tu promedio en Garmin)`;
     if (h.par === 3 && steps === 1) return `${hard}Un solo golpe al centro del green, no a la bandera; ${sg}: ${fmt1(h.caddy)} golpes. Si fallas, que sea corto y al frente, donde el chip es fácil.`;
     if (h.par === 3) return `${hard}Par 3 largo para tu bolsa: no lo fuerces con madera. Deja la bola al frente del green y entra rodando; ${sg}: ${fmt1(h.caddy)}.`;
-    return `${hard}${h.full} golpe${h.full === 1 ? '' : 's'} completo${h.full === 1 ? '' : 's'} hasta el green y ${sg}: ${fmt1(h.caddy)}. Nada de driver: el hierro 7 te deja en juego, y ${pct(right || 0)} de tus salidas se van a la derecha, así que apunta al lado izquierdo del fairway. Tu meta con handicap es ${h.personalPar}.`;
+    return `${hard}${h.full} golpe${h.full === 1 ? '' : 's'} completo${h.full === 1 ? '' : 's'} hasta el green y ${sg}: ${fmt1(h.caddy)}. ${h.steps[0] && /^Driver/.test(h.steps[0].club) ? 'Sal con el M4' : 'Sal recto'} y apunta al lado izquierdo del fairway: ${pct(right || 0)} de tus salidas se van a la derecha. Tu meta con handicap es ${h.personalPar}.`;
   }
 
   function renderSwitch(box) {
