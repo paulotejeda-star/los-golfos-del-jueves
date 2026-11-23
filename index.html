@@ -2,8 +2,8 @@
 <html lang="es" class="dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <title>Los Golfos del Jueves ⛳ | Golf Points & Scorecard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <title>Caddy PTC ⛳ | Los Golfos del Jueves</title>
   <meta name="theme-color" content="#064e3b" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -13,7 +13,9 @@
   <link rel="apple-touch-icon" href="/icon-192.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="/caddy.css" />
+  <link rel="stylesheet" href="/caddy-vivo.css" />
   <script src="/caddy.js" defer></script>
+  <script src="/caddy-vivo.js" defer></script>
   <style>
     :root {
       --bg-main: #071712;
@@ -172,8 +174,20 @@
 </head>
 <body class="min-h-screen pb-24 selection:bg-emerald-500 selection:text-black">
 
-  <!-- Top Club Header -->
-  <header class="sticky top-0 z-30 bg-[#071712]/95 backdrop-blur-md border-b border-emerald-900/60 px-3 sm:px-4 py-3">
+  <!-- Encabezado del Caddy (En vivo y Mi plan) -->
+  <header id="caddyHeader" class="cx-head">
+    <div class="cx-brand">
+      <div class="cx-logo" aria-hidden="true">🎯</div>
+      <div>
+        <h1 class="cx-title">Caddy PTC</h1>
+        <div class="cx-subtitle">Los Golfos del Jueves</div>
+      </div>
+    </div>
+    <div class="cx-hcp"><b id="cxHcp">–</b>handicap</div>
+  </header>
+
+  <!-- Encabezado de Puntajes -->
+  <header id="scoreHeader" class="hidden sticky top-0 z-30 bg-[#071712]/95 backdrop-blur-md border-b border-emerald-900/60 px-3 sm:px-4 py-3">
     <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-2">
       <div class="flex items-center gap-2.5">
         <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/60 border border-emerald-400/30 text-xl" aria-hidden="true">
@@ -181,9 +195,9 @@
         </div>
         <div>
           <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base sm:text-lg tracking-tight text-white leading-none">
-              Los Golfos del Jueves
-            </h1>
+            <h2 class="font-bold text-base sm:text-lg tracking-tight text-white leading-none">
+              Puntajes
+            </h2>
             <span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-medium">
               Oficial
             </span>
@@ -211,8 +225,11 @@
   <!-- Main Container -->
   <main class="max-w-5xl mx-auto px-3 sm:px-4 pt-3 space-y-4">
 
-    <!-- Mini Live Podium Bar (Always visible so everyone sees who is winning) -->
-    <section aria-label="Líderes en vivo" class="bg-[#0d261e] border border-emerald-800/60 rounded-2xl p-3 shadow-md">
+    <!-- PANTALLA PRINCIPAL: Caddy en vivo (la pinta caddy-vivo.js) -->
+    <section id="view-vivo" aria-label="Caddy en vivo"></section>
+
+    <!-- Mini Live Podium Bar (dentro de Puntajes) -->
+    <section id="scoreLeaders" aria-label="Líderes en vivo" class="hidden bg-[#0d261e] border border-emerald-800/60 rounded-2xl p-3 shadow-md">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
           <span>🔥</span> Ranking en Vivo (Puntos &amp; Golpes)
@@ -225,7 +242,7 @@
     </section>
 
     <!-- Navigation Tabs -->
-    <nav aria-label="Vistas principales" class="grid grid-cols-4 gap-1.5 bg-[#0d261e] p-1.5 rounded-xl border border-emerald-900/70">
+    <nav id="scoreNav" aria-label="Vistas de Puntajes" class="hidden grid grid-cols-3 gap-1.5 bg-[#0d261e] p-1.5 rounded-xl border border-emerald-900/70">
       <button type="button" data-tab="capture" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow">
         <span>🏌️‍♂️</span>
         <span>Hoyo x Hoyo</span>
@@ -238,14 +255,10 @@
         <span>🍻</span>
         <span>Hoyo 19</span>
       </button>
-      <button type="button" data-tab="caddy" class="tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white">
-        <span>🎯</span>
-        <span>Caddy PTC</span>
-      </button>
     </nav>
 
     <!-- TAB 1: HOLE BY HOLE CAPTURE -->
-    <section id="tab-capture" class="space-y-4">
+    <section id="tab-capture" class="hidden space-y-4">
       <!-- 18-Hole Horizontal Pill Strip -->
       <div class="bg-[#0d261e] border border-emerald-900/60 rounded-2xl p-3">
         <div class="flex items-center justify-between mb-2">
@@ -415,7 +428,7 @@
     </section>
 
     <!-- TAB 4: CADDY PTC (estrategia con datos de Garmin; lo pinta caddy.js) -->
-    <section id="tab-caddy" class="hidden space-y-4" aria-label="Caddy PTC"></section>
+    <section id="tab-caddy" class="hidden space-y-4" aria-label="Mi plan"></section>
   </main>
 
   <!-- DIALOG 1: CUSTOMIZE POINTS RULES (Uses closedby="any" + JS Fallback) -->
@@ -522,6 +535,13 @@
       </div>
     </form>
   </dialog>
+
+  <!-- Navegación principal de la app -->
+  <nav class="cx-nav" aria-label="Secciones de la app">
+    <button type="button" data-view="vivo" aria-current="page"><span aria-hidden="true">🎯</span><span>En vivo</span></button>
+    <button type="button" data-view="plan"><span aria-hidden="true">🧭</span><span>Mi plan</span></button>
+    <button type="button" data-view="puntajes"><span aria-hidden="true">🏆</span><span>Puntajes</span></button>
+  </nav>
 
   <script>
     // Register Service Worker for offline PWA use on course and purge stale v1 redirect cache
@@ -1203,8 +1223,51 @@
       document.getElementById('whatsappPreview').value = lines.join('\n');
     }
 
+    // Secciones de la app: En vivo (inicio), Mi plan y Puntajes
+    let scoreTab = 'capture';
+    function goView(view) {
+      const inScore = view === 'puntajes';
+      ['scoreHeader', 'scoreLeaders', 'scoreNav'].forEach((id) => document.getElementById(id).classList.toggle('hidden', !inScore));
+      document.getElementById('caddyHeader').classList.toggle('hidden', inScore);
+      document.getElementById('view-vivo').classList.toggle('hidden', view !== 'vivo');
+      document.getElementById('tab-caddy').classList.toggle('hidden', view !== 'plan');
+      ['capture', 'scorecard', 'hoyo19'].forEach((id) => {
+        document.getElementById(`tab-${id}`).classList.toggle('hidden', !inScore || id !== scoreTab);
+      });
+      document.querySelectorAll('.cx-nav [data-view]').forEach((b) => {
+        if (b.dataset.view === view) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
+      });
+      if (inScore) renderAll();
+      if (view === 'vivo' && window.CaddyVivo) window.CaddyVivo.show();
+      if (view === 'plan' && window.CaddyPTC) window.CaddyPTC.show();
+      window.scrollTo({ top: 0 });
+    }
+    document.querySelectorAll('.cx-nav [data-view]').forEach((b) => {
+      b.addEventListener('click', () => goView(b.dataset.view));
+    });
+
+    // El modo En vivo pasa tus golpes aquí solo cuando tú lo pides
+    window.GolfosScore = {
+      player() {
+        return state.players.find((p) => /paulo/i.test(p.name)) || state.players[0];
+      },
+      playerName() {
+        return this.player().name;
+      },
+      setStrokes(holeNum, strokes, par) {
+        const hole = state.holes[holeNum];
+        if (!hole) return;
+        hole.par = par;
+        getPlayerHoleData(holeNum, this.player().id).strokes = strokes;
+        saveState();
+        renderAll();
+      }
+    };
+
     function switchTab(tabId) {
-      ['capture', 'scorecard', 'hoyo19', 'caddy'].forEach((id) => {
+      scoreTab = tabId;
+      ['capture', 'scorecard', 'hoyo19'].forEach((id) => {
         document.getElementById(`tab-${id}`).classList.toggle('hidden', id !== tabId);
       });
       document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -1213,7 +1276,6 @@
           ? 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 bg-emerald-600 text-white shadow'
           : 'tab-btn py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center justify-center gap-1.5 text-slate-300 hover:text-white';
       });
-      if (tabId === 'caddy' && window.CaddyPTC) window.CaddyPTC.show();
     }
 
     function escapeHtml(str) {

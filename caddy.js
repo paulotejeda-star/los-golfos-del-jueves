@@ -932,28 +932,86 @@
     requestAnimationFrame(() => animateIn(body));
   }
 
-  async function show() {
-    const root = document.getElementById('tab-caddy');
-    if (!root) return;
-    if (!data) {
-      root.innerHTML = '<div class="cd-card text-center text-sm cd-muted">⛳ El Caddy está leyendo tus datos de Garmin…</div>';
-      try {
+  // Una sola carga de datos para «Mi plan» y «En vivo»
+  let loading = null;
+  function ensureData() {
+    if (data) return Promise.resolve(data);
+    if (!loading) {
+      loading = (async () => {
         const [r, rc] = await Promise.all([
           fetch('/caddy-data.json', { cache: 'no-store' }),
           fetch('/caddy-campos.json', { cache: 'no-store' }).catch(() => null),
         ]);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        data = await r.json();
+        const d = await r.json();
         if (rc && rc.ok) { try { campos = (await rc.json()).courses || []; } catch (e) { campos = []; } }
-      } catch (err) {
-        root.innerHTML = `<div class="cd-card text-center text-sm text-rose-300">No pude cargar los datos del Caddy (${String(err.message || err)}). Revisa la conexión y vuelve a entrar.</div>`;
-        return;
-      }
+        data = d;
+        loadBag();
+        return data;
+      })().catch((e) => { loading = null; throw e; });
     }
-    if (!rendered) { loadBag(); paint(); rendered = true; return; }
-    const body = document.getElementById('cdBody');
-    if (body && courseKey === 'huerta') requestAnimationFrame(() => animateIn(body));
+    return loading;
   }
 
-  window.CaddyPTC = { show };
+  async function show() {
+    const root = document.getElementById('tab-caddy');
+    if (!root) return;
+    if (!data) root.innerHTML = '<div class="cd-card text-center text-sm cd-muted">⛳ El Caddy está leyendo tus datos de Garmin…</div>';
+    try {
+      await ensureData();
+    } catch (err) {
+      root.innerHTML = `<div class="cd-card text-center text-sm text-rose-300">No pude cargar los datos del Caddy (${String(err.message || err)}). Revisa la conexión y vuelve a entrar.</div>`;
+      return;
+    }
+    // Se repinta siempre: En vivo pudo cambiar el campo y la bolsa se comparte
+    paint();
+    rendered = true;
+  }
+
+  // ---------- lo que usa la pantalla «En vivo» (caddy-vivo.js) ----------
+  const withScale = (f, fn) => {
+    const prev = distScale;
+    distScale = f || 1;
+    try { return fn(); } finally { distScale = prev; }
+  };
+  const scaled = (c, f) => (c ? { name: c.name, m: c.m * (f || 1) } : null);
+  const shortName = (name) => name.split(' · ')[0].replace('Club ', '').replace(' Golf & Country Club', '');
+  const vivo = {
+    ready: ensureData,
+    courseKey: () => courseKey,
+    setCourse(key) {
+      courseKey = key;
+      selectedHole = 1;
+      try { localStorage.setItem(COURSE_KEY, key); } catch (e) { /* nada */ }
+    },
+    summary() {
+      const best = data.rounds.filter((r) => r.holes === 9 && !r.excluded && !r.course)
+        .reduce((b, r) => (!b || r.strokes < b.strokes ? r : b), null);
+      return { handicap: fmt1(data.handicap), best9: best ? best.strokes : null, right: (data.fairway && data.fairway.percentFairwayRight) || 0 };
+    },
+    courses() {
+      const huerta = { key: 'huerta', name: data.course.name, short: 'La Huerta', factor: 1,
+        holes: data.plan.map((h) => ({ n: h.n, par: h.par, len: h.len, index: h.index, personalPar: h.personalPar, avg: h.avg })) };
+      return [huerta].concat(campos.map((c) => ({
+        key: c.key, name: c.name, short: shortName(c.name), factor: c.distFactor || 1,
+        holes: withScale(c.distFactor, () => coursePlan(c, pickTee(c))).map((h) => ({ n: h.n, par: h.par, len: h.len, index: h.index, personalPar: h.personalPar, avg: null })),
+      })));
+    },
+    driver: () => withScale(1, driverTee),
+    club(name, f) {
+      const c = bag.find((x) => x.name === name);
+      if (!c) return null;
+      return { ...scaled(c, f), range: c.dictated && c.dictated.range };
+    },
+    exact: (d, f) => withScale(f, () => scaled(clubExact(d), f)),
+    plusOne: (d, f) => withScale(f, () => scaled(clubFor(d), f)),
+    clock(d, f) {
+      const t = d / (f || 1);
+      const list = clockShots().sort((a, b) => a.m - b.m);
+      return scaled(list.find((c) => c.m + REACH >= t) || list[list.length - 1], f);
+    },
+    shots: (f) => shotLadder().slice().reverse().map((c) => scaled(c, f)),
+  };
+
+  window.CaddyPTC = { show, vivo };
 })();

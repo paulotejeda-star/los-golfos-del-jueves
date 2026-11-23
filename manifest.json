@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "Los Golfos del Jueves - Golf Tracker",
-  "short_name": "Golfos Jueves",
-  "description": "Sistema de puntos, golpes, O'yes, Hole Out, Par, Birdie y Hole in One para Los Golfos del Jueves.",
+  "name": "Caddy PTC · Los Golfos del Jueves",
+  "short_name": "Caddy PTC",
+  "description": "Tu caddy en vivo: qué palo y qué tiro según distancia y condiciones, con tu ronda golpe por golpe y puntajes del grupo.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

@@ -1,15 +1,28 @@
-const CACHE_NAME = 'golfos-jueves-v4';
+const CACHE_NAME = 'golfos-jueves-v5';
+const TAILWIND_URL = 'https://cdn.tailwindcss.com/';
 const ASSETS = [
   '/',
   '/manifest.json',
   '/icon.svg',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/caddy.js',
+  '/caddy.css',
+  '/caddy-vivo.js',
+  '/caddy-vivo.css',
+  '/caddy-data.json',
+  '/caddy-campos.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(ASSETS);
+      // Los estilos también deben abrir sin señal en la cancha; si falla, no detiene la instalación
+      try {
+        await cache.put(TAILWIND_URL, await fetch(TAILWIND_URL, { mode: 'no-cors' }));
+      } catch (e) { /* se guarda en la siguiente visita con red */ }
+    })
   );
   self.skipWaiting();
 });
@@ -27,6 +40,24 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Tailwind: lo guardado primero para abrir sin señal; se refresca por detrás
+  if (url.hostname === 'cdn.tailwindcss.com') {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(TAILWIND_URL);
+        const network = fetch(event.request)
+          .then((response) => {
+            if (response) cache.put(TAILWIND_URL, response.clone()).catch(() => {});
+            return response;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    );
+    return;
+  }
+
   if (url.origin !== self.location.origin) return;
 
   // Normalize /index.html requests to / so installed PWAs never hit a 308 redirect
