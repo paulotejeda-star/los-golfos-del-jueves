@@ -160,9 +160,9 @@
     try { localStorage.setItem(BAG_KEY, JSON.stringify(out)); } catch (e) { /* sin almacenamiento: queda en memoria */ }
   }
   // Reloj de wedges de la guía de Paulo (22-nov), en yardas con el 56°. La guía trae las 7
-  // en 30 y en 15 yd: se usa 15, que es la que sigue la escalera de 15 en 15 con las 8 en 30.
+  // en 30 y en 15 yd según la fuerza: Paulo eligió 30, y por eso no va la fila de las 8 (30).
   // El 52° va en proporción a su golpe completo contra el del 56°.
-  const WEDGE_CLOCK = [[10, 60], [9, 45], [8, 30], [7, 15]];
+  const WEDGE_CLOCK = [[10, 60], [9, 45], [7, 30]];
   // Holgura en metros: la bolsa guarda metros redondeados, y sin esto 140 yd (128.02 m) ya
   // no «alcanzaría» con el hierro 7 de 128 m que la misma tabla muestra como 140 yd.
   const REACH = 0.5;
@@ -177,11 +177,17 @@
     });
   }
   const shotLadder = () => [...bag, ...clockShots()].sort((a, b) => a.m - b.m);
-  // Para un chip que hay que volar: el tiro de reloj más corto que alcanza
-  function clockFor(dist) {
-    dist /= distScale;
+  // El tiro de reloj más corto que alcanza. Si falta bastante menos que el más corto de
+  // todos, es ese mismo reloj con menos fuerza.
+  function clockPick(dist) {
     const byLen = clockShots().sort((a, b) => a.m - b.m);
     const s = byLen.find((c) => c.m + REACH >= dist) || byLen[byLen.length - 1];
+    if (!s) return null;
+    return s === byLen[0] && dist + 3 < s.m ? { ...s, name: `${s.name}, con menos fuerza` } : s;
+  }
+  // Para un chip que hay que volar
+  function clockFor(dist) {
+    const s = clockPick(dist / distScale);
     return s ? s.name : null;
   }
   // Un palo más: el más corto que llega y luego el siguiente más largo, porque tu
@@ -630,7 +636,7 @@
             <tr class="border-t border-emerald-900/60"><th scope="row" class="py-1 text-left font-bold text-emerald-300">Completo</th>${cell(yd(f56.m), f56.m)}${f52 ? cell(yd(f52.m), f52.m) : '<td></td>'}</tr>
           </tbody>
         </table>
-        <p class="text-[10px] cd-muted mt-1 leading-snug">El 56° viene de tu guía. El 52° se calcula en proporción a su golpe completo.</p>
+        <p class="text-[10px] cd-muted mt-1 leading-snug">El 56° viene de tu guía. El 52° se calcula en proporción a su golpe completo. Para menos de 30 yd, sube a las 7 con menos fuerza.</p>
       </div>`;
   }
 
@@ -1005,11 +1011,7 @@
     },
     exact: (d, f) => withScale(f, () => scaled(clubExact(d), f)),
     plusOne: (d, f) => withScale(f, () => scaled(clubFor(d), f)),
-    clock(d, f) {
-      const t = d / (f || 1);
-      const list = clockShots().sort((a, b) => a.m - b.m);
-      return scaled(list.find((c) => c.m + REACH >= t) || list[list.length - 1], f);
-    },
+    clock: (d, f) => scaled(clockPick(d / (f || 1)), f),
     shots: (f) => shotLadder().slice().reverse().map((c) => scaled(c, f)),
   };
 
