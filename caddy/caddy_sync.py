@@ -299,16 +299,12 @@ def main():
            ("Sand 52°", None), ("Sand 56°", "Sand Wedge")]
     garmin_ids = {club_types.get(c["clubTypeId"]): c["id"] for c in club_list if not c.get("deleted")}
     fs = sorted(full_shots)
-    # Escalera de distancias de la tabla de referencia (Golfers Stone) que mandó Paulo,
-    # tal cual (sin escalar). Los wedges que la tabla no trae
-    # (AW, 52° y 56°) se intercalan entre el PW (101 m) y el SW de 54° (73 m).
-    LADDER = {"Hierro 4": 165, "Hierro 5": 155, "Hierro 6": 146, "Hierro 7": 137, "Hierro 8": 128,
-              "Hierro 9": 119, "PW": 101, "AW": 90, "Sand 52°": 80, "Sand 56°": 70}
-    # Paulo, 15-nov: «agarra la distancia del palo 9 de la escalera»: la tabla va tal
-    # cual (hierro 9 = 119 m). Las maderas no vienen en la tabla: referencia estándar
-    # para ese mismo jugador (madera 3 de 180 m y driver de 200 m), editables en la app.
-    est = {"Driver": 200, "Madera 3": 180}
-    est.update(LADDER)
+    # Guía de distancias que mandó Paulo el 22-nov (columna de hombres, en yardas), tal
+    # cual. Su SW es el 56°. No trae AW ni 52°: se reparten parejo entre el PW y el 56°.
+    LADDER_YD = {"Driver": 230, "Madera 3": 215, "Hierro 4": 170, "Hierro 5": 160, "Hierro 6": 150,
+                 "Hierro 7": 140, "Hierro 8": 130, "Hierro 9": 115, "PW": 105, "AW": 97,
+                 "Sand 52°": 89, "Sand 56°": 80}
+    est = {name: v * YD for name, v in LADDER_YD.items()}
     for name, extra in CLUB_UNRECORDED.items():
         dictated[name].extend(extra)
     clubs = []

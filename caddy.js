@@ -9,7 +9,8 @@
   const pct = (n) => `${Math.round(n)}%`;
   const yd = (m) => Math.round(Number(m) * 1.0936);
   const mYd = (m) => `${fmt0(m)} m (${yd(m)} yd)`;
-  const BAG_KEY = 'caddy_ptc_bolsa_v1';
+  // v2 (22-nov): tabla nueva. Los ajustes guardados contra la tabla anterior ya no aplican.
+  const BAG_KEY = 'caddy_ptc_bolsa_v2';
 
   let data = null;
   let campos = [];
@@ -158,12 +159,37 @@
     bag.forEach((c) => { if (c.m !== c.est) out[c.name] = c.m; });
     try { localStorage.setItem(BAG_KEY, JSON.stringify(out)); } catch (e) { /* sin almacenamiento: queda en memoria */ }
   }
+  // Reloj de wedges de la guía de Paulo (22-nov), en yardas con el 56°. La guía trae las 7
+  // en 30 y en 15 yd: se usa 15, que es la que sigue la escalera de 15 en 15 con las 8 en 30.
+  // El 52° va en proporción a su golpe completo contra el del 56°.
+  const WEDGE_CLOCK = [[10, 60], [9, 45], [8, 30], [7, 15]];
+  // Holgura en metros: la bolsa guarda metros redondeados, y sin esto 140 yd (128.02 m) ya
+  // no «alcanzaría» con el hierro 7 de 128 m que la misma tabla muestra como 140 yd.
+  const REACH = 0.5;
+  function clockShots() {
+    const base = bag.find((c) => c.name === 'Sand 56°');
+    if (!base) return [];
+    return ['Sand 56°', 'Sand 52°'].flatMap((name) => {
+      const c = bag.find((x) => x.name === name);
+      if (!c) return [];
+      const k = c.m / base.est;
+      return WEDGE_CLOCK.map(([hour, y]) => ({ name: `${name} a las ${hour}`, club: name, hour, yd: Math.round(y * k), m: (y / 1.0936) * k }));
+    });
+  }
+  const shotLadder = () => [...bag, ...clockShots()].sort((a, b) => a.m - b.m);
+  // Para un chip que hay que volar: el tiro de reloj más corto que alcanza
+  function clockFor(dist) {
+    dist /= distScale;
+    const byLen = clockShots().sort((a, b) => a.m - b.m);
+    const s = byLen.find((c) => c.m + REACH >= dist) || byLen[byLen.length - 1];
+    return s ? s.name : null;
+  }
   // Un palo más: el más corto que llega y luego el siguiente más largo, porque tu
   // fallo es quedarte corto. Tope en el Hierro 4: las maderas no son para tirar a green.
   function clubFor(dist) {
     dist /= distScale;
-    const byLen = [...bag].sort((a, b) => a.m - b.m);
-    const i = byLen.findIndex((c) => c.m >= dist);
+    const byLen = shotLadder();
+    const i = byLen.findIndex((c) => c.m + REACH >= dist);
     if (i < 0) return byLen[byLen.length - 1];
     const cap = byLen.findIndex((c) => c.name === 'Hierro 4');
     const up = Math.min(i + 1, byLen.length - 1);
@@ -172,8 +198,8 @@
   // El palo justo: el más corto que alcanza (para cuando ya mediste lo que te falta)
   function clubExact(dist) {
     dist /= distScale;
-    const byLen = [...bag].sort((a, b) => a.m - b.m);
-    return byLen.find((c) => c.m >= dist) || byLen[byLen.length - 1];
+    const byLen = shotLadder();
+    return byLen.find((c) => c.m + REACH >= dist) || byLen[byLen.length - 1];
   }
   function steadyClub() {
     return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
@@ -216,9 +242,9 @@
     while (left > 0 && steps.length < 6) {
       const label = labels[steps.length] || `Golpe ${steps.length + 1}`;
       if (left <= 30 && (chipFirst || steps.length)) {
-        steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', shot: left, left: 0 });
+        steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', alt: clockFor(left), shot: left, left: 0 });
         left = 0;
-      } else if (left > st.m * distScale) {
+      } else if (left > st.m * distScale + REACH) {
         const m = Math.round(st.m * distScale);
         left -= m;
         steps.push({ label, club: st.name, shot: m, left });
@@ -398,7 +424,7 @@
             : `<p class="text-[11px] text-emerald-300 mt-1 leading-snug"><b>${c.name}:</b> ${r.n} golpe${r.n === 1 ? '' : 's'} anotado${r.n === 1 ? '' : 's'} (${donde}), ${r.range || `${r.median} m`} según lo que anotaste. Con 3 o más ya sale su distancia.</p>`;
         }).join('')}
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
-          ? `Distancias de la tabla de referencia por palo que mandaste: hierro 9 a 119 m y entre un hierro y otro hay de 9 a 10 m. La tabla no trae maderas: la madera 3 (180 m) y el driver (200 m) son la medida típica de ese mismo jugador. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
+          ? `Distancias de la guía que mandaste (columna de hombres). La guía no trae el AW ni el 52°: quedan repartidos parejo entre el PW y el 56°. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
           : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
       </div>
 
@@ -519,6 +545,7 @@
             <div class="min-w-0 flex-1">
               <div class="text-[11px] cd-muted">${s.label}</div>
               <div class="text-sm font-extrabold text-white">🏌️ ${s.club}</div>
+              ${s.alt ? `<div class="text-[10px] text-emerald-300">Si tienes que volarla: ${s.alt}</div>` : ''}
             </div>
             <div class="text-right shrink-0">
               <div class="text-sm font-bold text-white cd-big">${fmt0(s.shot)} m · ${yd(s.shot)} yd</div>
@@ -566,6 +593,7 @@
               <div class="min-w-0 flex-1">
                 <div class="text-[11px] cd-muted">${s.label}</div>
                 <div class="text-sm font-extrabold text-white">🏌️ ${s.club}</div>
+                ${s.alt ? `<div class="text-[10px] text-emerald-300">Si tienes que volarla: ${s.alt}</div>` : ''}
               </div>
               <div class="text-right shrink-0">
                 <div class="text-sm font-bold text-white cd-big">${fmt0(s.shot)} m · ${yd(s.shot)} yd</div>
@@ -574,6 +602,35 @@
             </li>`).join('')}
         </ol>
         <p class="text-[10px] cd-muted mt-2">${/^Driver/.test(steps[0].club) ? 'Salida con el M4 a tu distancia real y al green con un palo más del que te alcanza.' : steps.length > 1 ? 'Golpes rectos con el hierro 7 y al green con un palo más del que te alcanza.' : 'Ya es un palo más del que te alcanza, porque tu fallo es quedarte corto.'} Las distancias de cada palo están en «Tu bolsa».</p>
+      </div>`;
+  }
+
+  // Tabla del reloj en «Tu bolsa»: se recalcula si ajustas el 52° o el 56° con − y +
+  function clockTable() {
+    const shots = clockShots();
+    if (!shots.length) return '';
+    const cell = (y, m) => `<td class="py-1 text-right font-extrabold text-white cd-big">${y} yd <span class="cd-muted font-semibold">· ${fmt0(m)} m</span></td>`;
+    const at = (name, hour) => shots.find((s) => s.club === name && s.hour === hour);
+    const full = (name) => bag.find((c) => c.name === name);
+    const rows = WEDGE_CLOCK.map(([hour]) => {
+      const a = at('Sand 56°', hour);
+      const b = at('Sand 52°', hour);
+      return `<tr class="border-t border-emerald-900/60"><th scope="row" class="py-1 text-left font-bold text-amber-300">A las ${hour}</th>${cell(a.yd, a.m)}${b ? cell(b.yd, b.m) : '<td></td>'}</tr>`;
+    }).join('');
+    const f56 = full('Sand 56°');
+    const f52 = full('Sand 52°');
+    return `
+      <div class="rounded-xl bg-[#0a2019] p-3" style="margin-top:.75rem">
+        <p class="text-xs font-bold text-white">🕙 Reloj de wedges</p>
+        <p class="text-[10px] cd-muted mt-0.5 leading-snug">La hora es hasta dónde subes los brazos en el backswing (la subida del palo), como si fueran la manecilla.</p>
+        <table class="w-full text-[11px] mt-2">
+          <thead><tr class="cd-muted"><th scope="col" class="text-left font-semibold pb-1">Subida</th><th scope="col" class="text-right font-semibold pb-1">56°</th><th scope="col" class="text-right font-semibold pb-1">52°</th></tr></thead>
+          <tbody>
+            ${rows}
+            <tr class="border-t border-emerald-900/60"><th scope="row" class="py-1 text-left font-bold text-emerald-300">Completo</th>${cell(yd(f56.m), f56.m)}${f52 ? cell(yd(f52.m), f52.m) : '<td></td>'}</tr>
+          </tbody>
+        </table>
+        <p class="text-[10px] cd-muted mt-1 leading-snug">El 56° viene de tu guía. El 52° se calcula en proporción a su golpe completo.</p>
       </div>`;
   }
 
@@ -592,7 +649,11 @@
         </div>
         <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="-1" aria-label="Restar 1 metro a ${c.name}">−</button>
         <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="1" aria-label="Sumar 1 metro a ${c.name}">+</button>
-      </div>`).join('');
+      </div>`).join('') + `
+      <div class="flex items-center gap-2">
+        <span class="w-20 text-xs font-bold text-white shrink-0">Putter</span>
+        <div class="flex-1 h-6 bg-[#0a2019] rounded-lg flex items-center pl-2 text-[11px] font-bold cd-muted">en el green</div>
+      </div>${clockTable()}`;
     box.querySelectorAll('[data-bag]').forEach((b) => {
       b.addEventListener('click', () => {
         const c = bag[Number(b.dataset.bag)];

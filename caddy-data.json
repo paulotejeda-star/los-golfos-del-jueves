@@ -1,6 +1,6 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-22T20:45+00:00",
+ "updated": "2026-11-23T02:06+00:00",
  "handicap": 45.2,
  "courseHandicap18": 25,
  "rounds": [
@@ -327,7 +327,7 @@
  "clubs": [
   {
    "name": "Driver",
-   "m": 200,
+   "m": 210,
    "source": "estimado",
    "model": "M4",
    "dictated": {
@@ -342,7 +342,7 @@
   },
   {
    "name": "Madera 3",
-   "m": 180,
+   "m": 197,
    "source": "estimado",
    "dictated": {
     "n": 1,
@@ -356,52 +356,52 @@
   },
   {
    "name": "Hierro 4",
-   "m": 165,
-   "source": "estimado"
-  },
-  {
-   "name": "Hierro 5",
    "m": 155,
    "source": "estimado"
   },
   {
-   "name": "Hierro 6",
+   "name": "Hierro 5",
    "m": 146,
    "source": "estimado"
   },
   {
-   "name": "Hierro 7",
+   "name": "Hierro 6",
    "m": 137,
    "source": "estimado"
   },
   {
-   "name": "Hierro 8",
+   "name": "Hierro 7",
    "m": 128,
    "source": "estimado"
   },
   {
-   "name": "Hierro 9",
+   "name": "Hierro 8",
    "m": 119,
    "source": "estimado"
   },
   {
+   "name": "Hierro 9",
+   "m": 105,
+   "source": "estimado"
+  },
+  {
    "name": "PW",
-   "m": 101,
+   "m": 96,
    "source": "estimado"
   },
   {
    "name": "AW",
-   "m": 90,
+   "m": 89,
    "source": "estimado"
   },
   {
    "name": "Sand 52°",
-   "m": 80,
+   "m": 81,
    "source": "estimado"
   },
   {
    "name": "Sand 56°",
-   "m": 70,
+   "m": 73,
    "source": "estimado"
   }
  ],
