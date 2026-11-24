@@ -233,7 +233,7 @@
     if (!bag.length || !len) return [];
     if (h.par === 3) {
       const c = clubFor(len);
-      return [{ label: 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
+      return [{ label: (groupHole(h.n) || {}).mode === 'ataca' ? 'Salida a la bandera' : 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
     }
     // Par 4: salida con el M4 (Paulo, 22-nov); hierro 7 si todavía no alcanzas, y al
     // green con un palo más (o chip rodado si quedan 30 m o menos).
@@ -262,6 +262,155 @@
     return steps;
   }
 
+  // ---------- tu juego en el grupo: HC del grupo en La Huerta ----------
+  // /caddy-grupo.json lo llenas tú (caddy_sync.py no lo toca). Los golpes caen por la
+  // dificultad de la tarjeta de La Huerta (plan[].index): con HC 16 en 9 hoyos te toca 1
+  // en cada hoyo y un segundo golpe en los 7 más difíciles.
+  let grupo = null;
+  let gpCache = null;
+  const MODES = {
+    ataca: { icon: '🔥', label: 'Ataca' },
+    centro: { icon: '🎯', label: 'Al centro' },
+    cuida: { icon: '🛡️', label: 'Cuida' },
+  };
+  // Cuánto vale cada logro en Puntajes (lo que tengas guardado en ⚙️ Puntos)
+  function pointRules() {
+    const base = { holeWin: 2, par: 1, birdie: 3, oyes: 2 };
+    try {
+      const saved = window.GolfosScore && window.GolfosScore.rules ? window.GolfosScore.rules() : null;
+      return { ...base, ...(saved || {}) };
+    } catch (e) { return base; }
+  }
+  // Modo de cada hoyo, con reglas que salen de tus números:
+  //   Cuida  → par 4, o promedias 2.5 o más sobre par (tarjeta del grupo o Garmin, la peor),
+  //            o el hoyo es más largo que tu golpe completo del 90%.
+  //   Ataca  → par 3 corto para ti (hasta la mitad entre tu golpe típico y el de tus mejores
+  //            3 de 4) donde ya hiciste par.
+  //   Al centro → todo lo demás.
+  function groupPlan() {
+    if (!grupo || !(grupo.hc > 0) || !data || !data.plan || data.plan.some((h) => h.index == null)) return null;
+    if (gpCache) return gpCache;
+    const n = data.plan.length;
+    const order = [...data.plan].sort((a, b) => a.index - b.index).map((h) => h.n);
+    const fs = data.fullShots || {};
+    const shortMax = fs.p50 && fs.p75 ? (fs.p50 + fs.p75) / 2 : 90;
+    const pars = new Set(grupo.parsOn || []);
+    gpCache = data.plan.map((h) => {
+      const rank = order.indexOf(h.n) + 1;
+      const strokes = Math.floor(grupo.hc / n) + (rank <= grupo.hc % n ? 1 : 0);
+      const gAvg = grupo.holeAvg && grupo.holeAvg[h.n] != null ? grupo.holeAvg[h.n] : null;
+      const avgs = [h.avg, gAvg].filter((v) => v != null);
+      const worst = avgs.length ? Math.max(...avgs) : null;
+      const madePar = (h.best != null && h.best <= h.par) || pars.has(h.n);
+      let mode = 'centro';
+      let why;
+      if (h.par >= 4) { mode = 'cuida'; why = `par ${h.par} de ${fmt0(h.len)} m, dificultad ${h.index} de 18`; }
+      else if (worst != null && worst >= h.par + 2.5) { mode = 'cuida'; why = `aquí promedias ${fmt1(worst)} en un par ${h.par}`; }
+      else if (fs.p90 && h.len > fs.p90) { mode = 'cuida'; why = `mide ${fmt0(h.len)} m, más que casi todos tus golpes completos`; }
+      else if (h.par === 3 && h.len <= shortMax && madePar) { mode = 'ataca'; why = `mide ${fmt0(h.len)} m y aquí ya hiciste par`; }
+      else why = h.len > shortMax ? `mide ${fmt0(h.len)} m, largo para tirarle a la bandera` : 'todavía no te sale el par aquí';
+      return { n: h.n, par: h.par, len: h.len, index: h.index, rank, strokes, net: h.par + strokes, cap: h.par + 2 + strokes, gAvg, worst, madePar, mode, why };
+    });
+    return gpCache;
+  }
+  const groupHole = (n) => { const gp = groupPlan(); return gp ? gp.find((g) => g.n === n) : null; };
+  // Tu meta en un hoyo de La Huerta: par neto del grupo si lo hay; si no, el par personal de Garmin
+  const metaOf = (h) => { const g = groupHole(h.n); return g ? g.net : h.personalPar; };
+  const overName = (k) => (k === 1 ? 'el bogey' : k === 2 ? 'el doble bogey' : `${k} sobre par`);
+  // Una línea para la pantalla En vivo
+  const cap1 = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  function groupLine(g) {
+    if (g.mode === 'ataca') return `${cap1(g.why)}. Bandera con un palo más; el O'yes vale +${pointRules().oyes}.`;
+    if (g.mode === 'cuida') return `${cap1(g.why)}. Bola en juego y al centro del green, sin números grandes. ${g.net} es par neto.`;
+    return `Centro del green y dos putts. ${g.net} es par neto.`;
+  }
+  // El consejo completo del hoyo
+  function groupTip(g) {
+    const r = pointRules();
+    const st = `Recibes ${g.strokes} golpe${g.strokes === 1 ? '' : 's'}, así que ${g.net} es tu par neto`;
+    if (g.mode === 'ataca') return `Hoyo para atacar: ${g.why}. Tira a la bandera con un palo más. Si la salida queda en green peleas el O'yes (+${r.oyes}) y el par te da +${r.par}. ${st} y ${g.par} sería birdie neto.`;
+    if (g.mode === 'cuida') return `Hoyo para cuidar el número: ${g.why}. ${st} y ${g.net + 1} todavía es bogey neto. Salida en juego, al centro del green y nada de golpes de héroe. Tu tope es ${g.cap}: si ya vas en ${g.net} sin embocar, juega solo a terminar.`;
+    return `Al centro del green con un palo más y dos putts (${g.why}). ${st}: con eso cumples.`;
+  }
+  const andList = (t) => (t.length > 1 ? `${t.slice(0, -1).join(', ')} y ${t[t.length - 1]}` : t[0] || '');
+
+  // Tarjeta «Tu juego en el grupo» de Mi plan
+  function renderGroup() {
+    const gp = groupPlan();
+    if (!gp) return '';
+    const r = pointRules();
+    const n = gp.length;
+    const sum = (k) => gp.reduce((a, g) => a + g[k], 0);
+    const net9 = sum('net');
+    const par9 = sum('par');
+    const base = Math.floor(grupo.hc / n);
+    const extra = grupo.hc % n;
+    const last = (grupo.last || []).filter((x) => x > 0);
+    const gap = last.length ? Math.min(...last) - net9 : null;
+    const netIs = (arr) => {
+      const ks = [...new Set(arr.map((g) => g.strokes))];
+      return ks.length === 1 ? `Ahí ${overName(ks[0])} ya es par neto.` : 'Tu par neto de cada uno está en la tabla.';
+    };
+    const text = {
+      ataca: () => `Cortos para ti y ahí ya hiciste par. Bandera con un palo más: de aquí salen el O'yes (+${r.oyes}) y el par (+${r.par}).`,
+      cuida: (arr) => `Aquí se te van los números grandes. ${netIs(arr)} Salida en juego, al centro del green y nunca pases del tope.`,
+      centro: (arr) => `Un palo más al centro del green y dos putts. ${netIs(arr)}`,
+    };
+    const tile = (v, label, cls) => `<div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold ${cls} cd-big leading-tight">${v}</div><div class="text-[10px] cd-muted leading-tight">${label}</div></div>`;
+    const row = (label, cell, total) => `<tr class="border-t border-emerald-900/60"><th scope="row" class="text-left font-semibold cd-muted py-1.5 pl-2 pr-1 whitespace-nowrap">${label}</th>${gp.map(cell).join('')}<td class="font-extrabold text-white pr-2 pl-1">${total}</td></tr>`;
+    const [y, m, d] = String(grupo.updated || '').split('-');
+    const asOf = d ? `${Number(d)}-${MONTHS[Number(m) - 1]}-${y}` : '';
+    return `
+      <div class="cd-card cd-reveal">
+        <div class="cd-kicker">🏆 Tu juego en el grupo${grupo.app ? ` · ${grupo.app}` : ''}</div>
+        <h2 class="text-lg font-extrabold text-white leading-tight mt-1">Dónde atacar y dónde cuidar con tu HC ${grupo.hc}</h2>
+        <div class="grid grid-cols-4 gap-2 mt-3 text-center">
+          ${tile(grupo.hc, 'tu HC<br>del grupo', 'text-white')}
+          ${grupo.rank ? tile(`${grupo.rank}<span class="text-[11px] cd-muted font-bold">/${grupo.players}</span>`, 'tu lugar<br>en el grupo', 'text-amber-300') : ''}
+          ${grupo.avgGross ? tile(fmt1(grupo.avgGross), `promedio<br>neto ${fmt1(grupo.avgNet)}`, 'text-rose-300') : ''}
+          ${tile(net9, 'meta: par<br>neto en 9', 'text-emerald-300')}
+        </div>
+        <div class="overflow-x-auto mt-3 rounded-xl bg-[#0a2019]">
+          <table class="w-full text-[11px] text-center cd-big">
+            <caption class="sr-only">Golpes, par neto, tope y plan de cada hoyo de La Huerta con tu HC del grupo</caption>
+            <thead><tr><th scope="col" class="text-left font-semibold cd-muted py-1.5 pl-2">Hoyo</th>${gp.map((g) => `<th scope="col" class="font-extrabold text-white px-0.5">${g.n}</th>`).join('')}<th scope="col" class="font-semibold cd-muted pr-2 pl-1">Total</th></tr></thead>
+            <tbody>
+              ${row('Par', (g) => `<td class="text-slate-200">${g.par}</td>`, par9)}
+              ${row('Recibes', (g) => `<td class="${g.strokes > base ? 'text-amber-300 font-bold' : 'text-slate-300'}">${g.strokes}</td>`, grupo.hc)}
+              ${row('Par neto', (g) => `<td class="font-extrabold text-emerald-300">${g.net}</td>`, net9)}
+              ${row('Tope', (g) => `<td class="text-rose-300">${g.cap}</td>`, '')}
+              ${row('Plan', (g) => `<td class="cd-m-${g.mode} py-1" title="${MODES[g.mode].label}">${MODES[g.mode].icon}</td>`, '')}
+            </tbody>
+          </table>
+        </div>
+        <div class="space-y-2 mt-3">
+          ${['ataca', 'cuida', 'centro'].map((k) => {
+            const arr = gp.filter((g) => g.mode === k);
+            return arr.length ? `<div class="cd-mode cd-mode-${k}"><b>${MODES[k].icon} ${MODES[k].label}: ${andList(arr.map((g) => `H${g.n}`))}.</b> ${text[k](arr)}</div>` : '';
+          }).join('')}
+        </div>
+        ${gap != null ? `<p class="text-[12px] text-emerald-300 mt-3 leading-snug font-semibold">${gap > 0
+          ? `Promedias ${fmt1(grupo.avgGross)} y tus últimas fueron ${andList(last.map(String))}: te falta${gap === 1 ? '' : 'n'} ${gap} golpe${gap === 1 ? '' : 's'} para tu meta de ${net9}.`
+          : `Tus últimas fueron ${andList(last.map(String))}: ya estás en tu meta de ${net9}. Ahora el chiste es repetirla.`}</p>` : ''}
+        <p class="text-[11px] cd-muted mt-2 leading-snug"><b class="text-slate-200">Cómo caen tus golpes</b>: con HC ${grupo.hc} en ${n} hoyos recibes ${base} en cada hoyo${extra ? ` y uno más en los ${extra} más difíciles según la tarjeta de La Huerta (dificultad 1 = el más difícil)` : ''}. <b class="text-slate-200">Par neto</b> = par + tus golpes; si lo haces en los ${n} tiras ${net9} (par ${par9} + ${grupo.hc}). <b class="text-slate-200">Tope</b> = par neto + 2: arriba de eso el hoyo ya no cuenta para tu handicap, pero en el torneo te sigue costando.</p>
+        <p class="text-[10px] cd-muted mt-2">Datos del grupo${asOf ? ` al ${asOf}` : ''}${grupo.app ? ` (${grupo.app})` : ''}. La dificultad de cada hoyo es la de la tarjeta de La Huerta en Garmin; confírmala con la tarjeta del club.</p>
+      </div>`;
+  }
+
+  // Recuadro del modo en el detalle de cada hoyo de Mi plan
+  function renderGroupHole(g) {
+    if (!g) return '';
+    const m = MODES[g.mode];
+    return `
+      <div class="cd-mode cd-mode-${g.mode} mt-3">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <b class="text-sm">${m.icon} ${m.label}</b>
+          <span class="text-[11px] font-bold cd-big">recibes ${g.strokes} · par neto ${g.net} · tope ${g.cap}</span>
+        </div>
+        <p class="mt-1">${groupTip(g)}</p>
+      </div>`;
+  }
+
   // ---------- consejos ----------
   function holeTip(h) {
     const right = data.fairway && data.fairway.percentFairwayRight;
@@ -269,16 +418,20 @@
       const s = holeSteps(h);
       const first = s[0] && /^Driver/.test(s[0].club) ? `Salida con tu ${s[0].club} a ${mYd(s[0].shot)}` : 'Salida recta';
       const last = s.length ? s[s.length - 1].club.replace(/^Chip/, 'chip') : 'un palo más';
-      return `${first} y al green con ${last}. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${h.personalPar}, ganaste el hoyo contra tu handicap.`;
+      return `${first} y al green con ${last}. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${metaOf(h)}, ganaste el hoyo contra tu handicap.`;
     }
     const short = (h.len || 0) - (h.tee || 0);
+    // En los hoyos para atacar del grupo se tira a la bandera; en los demás, al centro
+    const attack = (groupHole(h.n) || {}).mode === 'ataca';
     if (short >= 12) {
-      return `Te quedas corto: tu salida promedia ${mYd(h.tee)} y el hoyo mide ${mYd(h.len)}. Toma un palo más y apunta al centro del green, no a la bandera.`;
+      return `Te quedas corto: tu salida promedia ${mYd(h.tee)} y el hoyo mide ${mYd(h.len)}. Toma un palo más y ${attack ? 'apunta a la bandera: con ese palo ya llegas' : 'apunta al centro del green, no a la bandera'}.`;
     }
     if ((h.inside || 0) >= 3.5) {
       return `Llegas cerca, pero gastas ${fmt1(h.inside)} golpes desde 30 m. Rueda la bola con hierro 8 hasta el green y busca dejar un putt corto.`;
     }
-    return `Es de tus hoyos buenos. Repite la rutina: centro del green y dos putts. Tu meta aquí es ${h.personalPar}.`;
+    return attack
+      ? `Es de tus hoyos buenos y aquí se pelea el par. Un palo más a la bandera y dos putts. Tu meta aquí es ${metaOf(h)}.`
+      : `Es de tus hoyos buenos. Repite la rutina: centro del green y dos putts. Tu meta aquí es ${metaOf(h)}.`;
   }
 
   // ---------- render ----------
@@ -334,6 +487,8 @@
         </div>
         <p class="text-[11px] cd-muted mt-3 leading-snug"><b class="text-slate-200">Par personal</b>: lo que alguien con tu handicap debería tirar en 9 hoyos de ${d.course.name} (par ${d.par9} más los golpes que te da tu handicap). Cada vez que lo igualas, tu handicap baja.</p>
       </div>
+
+      ${renderGroup()}
 
       <!-- 2. Simulador de jugadas -->
       <div class="cd-card cd-reveal">
@@ -396,22 +551,25 @@
         </div>
         <div id="cdHole"></div>
         <div class="mt-4">
-          <p class="text-xs font-bold text-white">Tu promedio contra tu par personal, por hoyo</p>
+          <p class="text-xs font-bold text-white">Tu promedio contra ${groupPlan() ? `tu par neto en el grupo (HC ${grupo.hc})` : 'tu par personal'}, por hoyo</p>
           <div class="flex items-end gap-1.5 h-36 mt-2" id="cdHoleBars">
             ${d.plan.map((h) => {
               const max = Math.max(...d.plan.map((x) => x.avg || 0), 1) + 0.5;
-              const over = (h.avg || 0) > h.personalPar;
-              return `<button type="button" class="flex-1 flex flex-col items-center justify-end h-full relative" data-hole="${h.n}" aria-label="Hoyo ${h.n}: promedio ${fmt1(h.avg)}, par personal ${h.personalPar}">
+              const meta = metaOf(h);
+              const g = groupHole(h.n);
+              const over = (h.avg || 0) > meta;
+              return `<button type="button" class="flex-1 flex flex-col items-center justify-end h-full relative" data-hole="${h.n}" aria-label="Hoyo ${h.n}: promedio ${fmt1(h.avg)}, ${g ? `par neto ${meta}, ${MODES[g.mode].label}` : `par personal ${meta}`}">
                 <span class="text-[10px] font-bold ${over ? 'text-rose-300' : 'text-emerald-300'} cd-big">${h.avg != null ? fmt1(h.avg) : 's/d'}</span>
                 <div class="w-full relative flex items-end" style="height:78%">
-                  <div class="absolute left-0 right-0 z-10 border-t-2 border-dashed border-emerald-200" style="bottom:${(h.personalPar / max) * 100}%"></div>
+                  <div class="absolute left-0 right-0 z-10 border-t-2 border-dashed border-emerald-200" style="bottom:${(meta / max) * 100}%"></div>
                   <div class="cd-col w-full rounded-t-md ${over ? 'bg-gradient-to-t from-rose-600 to-rose-400' : 'bg-gradient-to-t from-emerald-600 to-emerald-400'}" data-h="${((h.avg || 0) / max) * 100}"></div>
                 </div>
                 <span class="text-[10px] cd-muted mt-1">${h.n}</span>
+                ${g ? `<span class="text-[11px] leading-none" aria-hidden="true">${MODES[g.mode].icon}</span>` : ''}
               </button>`;
             }).join('')}
           </div>
-          <p class="text-[10px] cd-muted mt-1">Línea punteada verde = tu par personal en ese hoyo. Barra roja = ahí estás arriba de tu meta.</p>
+          <p class="text-[10px] cd-muted mt-1">${groupPlan() ? 'Línea punteada verde = tu par neto en el grupo. Barra roja = ahí estás arriba de tu meta. 🔥 ataca · 🎯 al centro · 🛡️ cuida.' : 'Línea punteada verde = tu par personal en ese hoyo. Barra roja = ahí estás arriba de tu meta.'}</p>
         </div>
       </div>
 
@@ -502,7 +660,7 @@
         <div>${holeSvg(h)}</div>
         <div>
           <div class="grid grid-cols-4 gap-1.5 text-center">
-            ${[['Par', h.par, 'text-white'], ['Tu meta', h.personalPar, 'text-emerald-300'], ['Promedio', h.avg != null ? fmt1(h.avg) : 's/d', 'text-rose-300'], ['Mejor', h.best ?? 's/d', 'text-amber-300']]
+            ${[['Par', h.par, 'text-white'], [groupHole(h.n) ? 'Par neto' : 'Tu meta', metaOf(h), 'text-emerald-300'], ['Promedio', h.avg != null ? fmt1(h.avg) : 's/d', 'text-rose-300'], ['Mejor', h.best ?? 's/d', 'text-amber-300']]
               .map(([k, v, c]) => `<div class="bg-[#0a2019] rounded-xl py-1.5"><div class="text-lg font-extrabold ${c} cd-big">${v}</div><div class="text-[10px] cd-muted">${k}</div></div>`).join('')}
           </div>
           <div class="flex items-center justify-between bg-[#0a2019] rounded-xl px-3 py-2 mt-2">
@@ -513,6 +671,7 @@
           <p class="text-sm text-slate-100 mt-2 leading-snug">💬 ${holeTip(h)}</p>
         </div>
       </div>
+      ${renderGroupHole(groupHole(h.n))}
       ${renderSteps(h)}
       ${renderLeftBox()}`;
     bindLeftBox(h);
@@ -944,13 +1103,17 @@
     if (data) return Promise.resolve(data);
     if (!loading) {
       loading = (async () => {
-        const [r, rc] = await Promise.all([
+        const [r, rc, rg] = await Promise.all([
           fetch('/caddy-data.json', { cache: 'no-store' }),
           fetch('/caddy-campos.json', { cache: 'no-store' }).catch(() => null),
+          fetch('/caddy-grupo.json', { cache: 'no-store' }).catch(() => null),
         ]);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         if (rc && rc.ok) { try { campos = (await rc.json()).courses || []; } catch (e) { campos = []; } }
+        // Sin el archivo del grupo el Caddy sigue igual que antes, con tu par personal de Garmin
+        if (rg && rg.ok) { try { grupo = await rg.json(); } catch (e) { grupo = null; } }
+        gpCache = null;
         data = d;
         loadBag();
         return data;
@@ -997,7 +1160,7 @@
     },
     courses() {
       const huerta = { key: 'huerta', name: data.course.name, short: 'La Huerta', factor: 1,
-        holes: data.plan.map((h) => ({ n: h.n, par: h.par, len: h.len, index: h.index, personalPar: h.personalPar, avg: h.avg })) };
+        holes: data.plan.map((h) => ({ n: h.n, par: h.par, len: h.len, index: h.index, personalPar: h.personalPar, avg: h.avg, group: groupHole(h.n) })) };
       return [huerta].concat(campos.map((c) => ({
         key: c.key, name: c.name, short: shortName(c.name), factor: c.distFactor || 1,
         holes: withScale(c.distFactor, () => coursePlan(c, pickTee(c))).map((h) => ({ n: h.n, par: h.par, len: h.len, index: h.index, personalPar: h.personalPar, avg: null })),
@@ -1013,6 +1176,11 @@
     plusOne: (d, f) => withScale(f, () => scaled(clubFor(d), f)),
     clock: (d, f) => scaled(clockPick(d / (f || 1)), f),
     shots: (f) => shotLadder().slice().reverse().map((c) => scaled(c, f)),
+    // Juego del grupo: puntos de cada logro y la línea corta del modo de cada hoyo
+    rules: pointRules,
+    modes: MODES,
+    groupLine,
+    groupHc: () => (groupPlan() ? grupo.hc : null),
   };
 
   window.CaddyPTC = { show, vivo };

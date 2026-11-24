@@ -63,11 +63,13 @@
   function holeState() {
     const k = holeKey(live.vuelta, live.hole);
     if (!live.holes[k]) {
-      live.holes[k] = { shots: [], penalties: 0, putts: 0, onGreen: false, done: false, total: null, dist: curInfo().len, lie: 'tee', slope: 'plano', danger: 'none', touched: false, pick: 'best', other: '' };
+      live.holes[k] = { shots: [], penalties: 0, putts: 0, onGreen: false, done: false, total: null, dist: curInfo().len, lie: 'tee', slope: 'plano', danger: 'none', touched: false, pick: 'best', picked: false, other: '' };
     }
     return live.holes[k];
   }
   const strokesOf = (h) => (h.total != null ? h.total : h.shots.length + h.penalties + h.putts);
+  // Tu meta del hoyo: par neto del grupo en La Huerta; en los demás campos, tu par personal
+  const metaOf = (x) => (x.group ? x.group.net : x.personalPar);
   const hasData = () => Object.values(live.holes).some((h) => h.done || h.shots.length || h.putts || h.penalties);
 
   // ---------- tus distancias reales de lo que vas anotando ----------
@@ -171,20 +173,31 @@
     else if (isTee && info.par >= 4) tips.push(`Apunta al lado izquierdo: ${Math.round(right)}% de tus salidas se van a la derecha.`);
     if (live.wind === 'cruz') tips.push('Viento cruzado: apunta un poco hacia donde viene el viento.');
 
+    // Juego del grupo: en hoyos para cuidar con peligro marcado, el Caddy pone la más segura
+    const g = info.group;
+    const prefer = g && g.mode === 'cuida' && h.danger !== 'none' && options.some((o) => o.kind === 'safe') ? 'safe' : null;
+    if (g) {
+      const done = h.shots.length + h.penalties;
+      if (done >= g.net) tips.unshift(`Llevas ${done} y tu par neto es ${g.net}. Ahora juega solo a terminar sin pasar de ${g.cap}: tiro seguro al green.`);
+      else if (prefer) tips.unshift('Hoyo para cuidar y marcaste peligro: el Caddy te pone la opción más segura.');
+      else if (g.mode === 'ataca' && isTee && info.par === 3) tips.unshift('Hoyo para atacar: apunta a la bandera, no al centro.');
+    }
+
     const why = [];
     if (WIND[live.wind]) why.push('viento');
     if (SLOPE[h.slope]) why.push('terreno');
     if (LIE[h.lie]) why.push(h.lie === 'arena' ? 'arena' : 'rough');
-    return { dist, plays, pctAdj, adj, why, options, tips };
+    return { dist, plays, pctAdj, adj, why, options, tips, prefer };
   }
 
   // ---------- pintado ----------
   const chipBtn = (k, v, label, on) => `<button type="button" class="vv-chip" data-a="set" data-k="${k}" data-v="${v}" aria-pressed="${on}">${label}</button>`;
   function renderTop(c, info, h) {
     const nine = c.holes.length === 9;
+    const g = info.group;
     const strip = c.holes.map((x) => {
       const s = live.holes[holeKey(live.vuelta, x.n)];
-      const st = s && s.done ? (strokesOf(s) <= x.personalPar ? 'good' : 'bad') : '';
+      const st = s && s.done ? (strokesOf(s) <= metaOf(x) ? 'good' : 'bad') : '';
       return `<button type="button" class="vv-dot ${st}" data-a="go" data-v="${x.n}" aria-pressed="${x.n === live.hole}" aria-label="Hoyo ${x.n}${s && s.done ? `, ${strokesOf(s)} golpes` : ''}">${s && s.done ? strokesOf(s) : x.n}</button>`;
     }).join('');
     return `
@@ -204,8 +217,10 @@
           <button type="button" class="vv-nav" data-a="next" aria-label="Hoyo siguiente">›</button>
         </div>
         <div class="vv-strip" role="group" aria-label="Elige hoyo">${strip}</div>
+        ${g ? `<div class="vv-mode vv-mode-${g.mode}"><b>${api.modes[g.mode].icon} ${api.modes[g.mode].label}</b><span>${api.groupLine(g)}</span></div>` : ''}
         <div class="vv-stats">
-          <div><b class="vv-good">${info.personalPar}</b><span>tu meta</span></div>
+          <div><b class="vv-good">${metaOf(info)}</b><span>${g ? 'par neto' : 'tu meta'}</span></div>
+          ${g ? `<div><b class="vv-bad">${g.cap}</b><span>tope</span></div>` : ''}
           <div><b>${strokesOf(h)}</b><span>golpes aquí</span></div>
           <div><b class="vv-gold">${info.avg != null ? Number(info.avg).toLocaleString('es-MX', { maximumFractionDigits: 1 }) : info.index}</b><span>${info.avg != null ? 'tu promedio' : 'dificultad'}</span></div>
         </div>
@@ -259,7 +274,8 @@
       return;
     }
     const d = decide(h, info, c);
-    let chosen = d.options.find((o) => o.kind === h.pick) || d.options[0];
+    const want = !h.picked && d.prefer ? d.prefer : h.pick;
+    let chosen = d.options.find((o) => o.kind === want) || d.options[0];
     if (h.other) {
       const o = api.shots(c.factor).find((x) => x.name === h.other);
       if (o) {
@@ -330,15 +346,24 @@
 
   function renderDone(h, info, c) {
     const s = strokesOf(h);
-    const vsMeta = s - info.personalPar;
-    const msg = vsMeta < 0 ? `¡${-vsMeta} mejor que tu meta!` : vsMeta === 0 ? 'Igualaste tu meta.' : `${vsMeta} arriba de tu meta. Al siguiente.`;
+    const g = info.group;
+    const vsMeta = s - metaOf(info);
+    let msg = vsMeta < 0 ? `¡${-vsMeta} mejor que tu meta!` : vsMeta === 0 ? 'Igualaste tu meta.' : `${vsMeta} arriba de tu meta. Al siguiente.`;
+    if (g) {
+      msg = vsMeta < 0 ? `¡${vsMeta === -1 ? 'Birdie' : vsMeta === -2 ? 'Águila' : `${-vsMeta} bajo par`} neto!`
+        : vsMeta === 0 ? 'Par neto: hoyo cumplido.'
+          : s > g.cap ? `Pasaste tu tope de ${g.cap}: para tu handicap cuenta ${g.cap}. Al siguiente con calma.`
+            : `${vsMeta} arriba de tu par neto. Al siguiente.`;
+      const r = api.rules();
+      if (s <= info.par) msg += ` En Puntajes: ${s < info.par ? `birdie +${r.birdie}` : `par +${r.par}`}.`;
+    }
     const last = live.hole === c.holes.length && !(c.holes.length === 9 && live.vuelta === 1);
     return `
       <div class="vv-card vv-decide">
         <div class="vv-kicker">Hoyo ${info.n} terminado</div>
         <div class="vv-counter">
           <button type="button" class="vv-step" data-a="total" data-v="-1" aria-label="Restar golpe">−</button>
-          <div><b class="${vsMeta <= 0 ? 'vv-good' : 'vv-bad'}">${s}</b><span>golpes · par ${info.par}</span></div>
+          <div><b class="${vsMeta <= 0 ? 'vv-good' : 'vv-bad'}">${s}</b><span>golpes · ${g ? `par neto ${g.net}` : `par ${info.par}`}</span></div>
           <button type="button" class="vv-step" data-a="total" data-v="1" aria-label="Sumar golpe">+</button>
         </div>
         <p class="vv-result">${msg}</p>
@@ -357,7 +382,7 @@
       const info = c.holes.find((x) => x.n === n);
       if (!info) return;
       const s = strokesOf(h);
-      total += s; meta += info.personalPar; par += info.par; count += 1;
+      total += s; meta += metaOf(info); par += info.par; count += 1;
       if (v === live.vuelta) { vTotal += s; vCount += 1; }
     });
     const diff = total - meta;
@@ -376,7 +401,7 @@
         <div class="vv-stats">
           <div><b>${total}</b><span>golpes</span></div>
           <div><b>${count}</b><span>hoyos</span></div>
-          <div><b class="${diff <= 0 ? 'vv-good' : 'vv-bad'}">${count ? (diff > 0 ? `+${diff}` : diff === 0 ? '0' : `−${-diff}`) : '0'}</b><span>contra tu meta</span></div>
+          <div><b class="${diff <= 0 ? 'vv-good' : 'vv-bad'}">${count ? (diff > 0 ? `+${diff}` : diff === 0 ? '0' : `−${-diff}`) : '0'}</b><span>${c.holes.some((x) => x.group) ? 'contra par neto' : 'contra tu meta'}</span></div>
           <div><b>${count ? (total - par > 0 ? `+${total - par}` : total - par === 0 ? '0' : `−${par - total}`) : '0'}</b><span>contra par</span></div>
         </div>
         ${goal ? `<p class="vv-tip">🏆 ${goal}</p>` : ''}
@@ -498,17 +523,19 @@
         if (b.dataset.k === 'wind') live.wind = v; else h[b.dataset.k] = v;
         b.parentElement.querySelectorAll('.vv-chip').forEach((x) => x.setAttribute('aria-pressed', x === b));
         h.pick = 'best';
+        h.picked = false;
         h.other = '';
         save();
         renderDecision();
         break;
-      case 'pick': h.pick = v; h.other = ''; save(); renderDecision(); break;
+      case 'pick': h.pick = v; h.picked = true; h.other = ''; save(); renderDecision(); break;
       case 'shot': {
         if (!ui.chosen) return;
         const o = ui.chosen;
         closeLastShot(h);
         h.shots.push({ id: `${Date.now()}`, club: o.club, from: h.dist, to: null, lie: h.lie });
         h.pick = 'best';
+        h.picked = false;
         h.other = '';
         h.touched = false;
         if (o.left > 0) {

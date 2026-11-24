@@ -1262,6 +1262,10 @@
         getPlayerHoleData(holeNum, this.player().id).strokes = strokes;
         saveState();
         renderAll();
+      },
+      // El Caddy lee cuánto vale cada logro para decirte qué te da puntos en cada hoyo
+      rules() {
+        return { ...state.rules };
       }
     };
 

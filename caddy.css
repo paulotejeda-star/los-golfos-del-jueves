@@ -40,6 +40,16 @@
 .cd-hole-btn { min-width: 2.5rem; height: 2.5rem; border-radius: .75rem; font-weight: 800; font-size: .85rem; border: 1px solid #1f4d3d; background: #0a2019; color: #cbd5e1; transition: all .2s; }
 .cd-hole-btn[aria-pressed="true"] { background: #10b981; color: #052e22; border-color: #34d399; transform: translateY(-2px); box-shadow: 0 6px 18px -6px rgba(16, 185, 129, .7); }
 
+/* Modo de cada hoyo en el juego del grupo: ataca, al centro, cuida */
+.cd-mode { border: 1px solid; border-radius: .75rem; padding: .625rem .75rem; font-size: .78rem; line-height: 1.35; }
+.cd-mode b { color: #fff; }
+.cd-mode-ataca { background: rgba(245, 158, 11, .10); border-color: rgba(245, 158, 11, .55); color: #fde68a; }
+.cd-mode-centro { background: rgba(16, 185, 129, .08); border-color: rgba(16, 185, 129, .45); color: #a7f3d0; }
+.cd-mode-cuida { background: rgba(56, 189, 248, .08); border-color: rgba(56, 189, 248, .45); color: #bae6fd; }
+.cd-m-ataca { background: rgba(245, 158, 11, .20); }
+.cd-m-centro { background: rgba(16, 185, 129, .14); }
+.cd-m-cuida { background: rgba(56, 189, 248, .16); }
+
 @media (prefers-reduced-motion: reduce) {
   .cd-reveal, .cd-ring-bar, .cd-bar, .cd-col { transition: none; }
   .cd-dash, .cd-pulse, .cd-pop { animation: none; }
