@@ -1,0 +1,22 @@
+{
+ "note": "Tu juego en el grupo (app H19 Golf), con los datos al 22-nov-2026 del resumen de handicap. caddy_sync.py no toca este archivo: actualízalo a mano cuando cambie tu HC del grupo, tu lugar o tus promedios. Los golpes por hoyo salen de la dificultad de la tarjeta de La Huerta que trae Garmin (caddy-data.json → plan[].index).",
+ "updated": "2026-11-22",
+ "app": "H19 Golf",
+ "course": "huerta",
+ "hc": 16,
+ "holes": 9,
+ "rank": 42,
+ "players": 52,
+ "rounds": 10,
+ "tournaments": 6,
+ "avgGross": 50.3,
+ "avgNet": 34.3,
+ "best": 46,
+ "last": [47, 47],
+ "whs": 34.8,
+ "pars": 3,
+ "holesPlayed": 90,
+ "birdies": 0,
+ "holeAvg": { "1": 6.6, "2": 4.7, "3": 6.3, "4": 4.8, "5": 5.8, "6": 7.0, "8": 4.7 },
+ "parsOn": [2, 4, 8]
+}

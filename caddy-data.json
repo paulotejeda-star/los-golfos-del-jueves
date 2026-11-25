@@ -344,6 +344,7 @@
    "name": "Madera 3",
    "m": 197,
    "source": "estimado",
+   "model": "R11",
    "dictated": {
     "n": 1,
     "range": "de 100 a 120 m",
@@ -355,14 +356,16 @@
    }
   },
   {
-   "name": "Hierro 4",
+   "name": "Híbrido 4",
    "m": 155,
-   "source": "estimado"
+   "source": "estimado",
+   "model": "Qi4D"
   },
   {
-   "name": "Hierro 5",
+   "name": "Híbrido 5",
    "m": 146,
-   "source": "estimado"
+   "source": "estimado",
+   "model": "Qi35D"
   },
   {
    "name": "Hierro 6",
@@ -395,7 +398,7 @@
    "source": "estimado"
   },
   {
-   "name": "Sand 52°",
+   "name": "Wedge 52°",
    "m": 81,
    "source": "estimado"
   },

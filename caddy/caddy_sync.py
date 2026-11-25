@@ -290,20 +290,25 @@ def main():
     # Bolsa: distancia de cada palo. Si el reloj trae el palo marcado (3 tiros o más)
     # se usa la mediana real; si no, se estima: el palo más largo = el 10% más largo
     # de tus tiros completos; los demás siguen la escalera de la tabla (ver LADDER).
-    # Bolsa real de Paulo (15-nov-2026). En Garmin varios palos están retirados, así
-    # que la lista manda aquí; el segundo valor liga el palo con su tipo en Garmin
-    # para usar la distancia real cuando el reloj traiga el palo marcado.
+    # Bolsa real de Paulo (25-nov-2026): los híbridos 4 y 5 entraron en lugar de los
+    # hierros 4 y 5, y el 52° es de aproximación. Putter y chipper no van aquí: la app
+    # los muestra aparte. En Garmin varios palos están retirados, así que la lista manda;
+    # el segundo valor liga el palo con su tipo en Garmin para usar la distancia real
+    # cuando el reloj traiga el palo marcado (si Garmin nombra distinto los híbridos,
+    # ajusta ese valor).
     BAG = [("Driver", "Driver"), ("Madera 3", "3 Wood"),
-           ("Hierro 4", "4 Iron"), ("Hierro 5", "5 Iron"), ("Hierro 6", "6 Iron"), ("Hierro 7", "7 Iron"),
+           ("Híbrido 4", "4 Hybrid"), ("Híbrido 5", "5 Hybrid"), ("Hierro 6", "6 Iron"), ("Hierro 7", "7 Iron"),
            ("Hierro 8", "8 Iron"), ("Hierro 9", "9 Iron"), ("PW", "Pitching Wedge"), ("AW", "Gap Wedge"),
-           ("Sand 52°", None), ("Sand 56°", "Sand Wedge")]
+           ("Wedge 52°", None), ("Sand 56°", "Sand Wedge")]
+    MODELS = {"Driver": "M4", "Madera 3": "R11", "Híbrido 4": "Qi4D", "Híbrido 5": "Qi35D"}
     garmin_ids = {club_types.get(c["clubTypeId"]): c["id"] for c in club_list if not c.get("deleted")}
     fs = sorted(full_shots)
     # Guía de distancias que mandó Paulo el 22-nov (columna de hombres, en yardas), tal
     # cual. Su SW es el 56°. No trae AW ni 52°: se reparten parejo entre el PW y el 56°.
-    LADDER_YD = {"Driver": 230, "Madera 3": 215, "Hierro 4": 170, "Hierro 5": 160, "Hierro 6": 150,
+    # Los híbridos toman la fila del hierro que reemplazan hasta tener 3 golpes marcados.
+    LADDER_YD = {"Driver": 230, "Madera 3": 215, "Híbrido 4": 170, "Híbrido 5": 160, "Hierro 6": 150,
                  "Hierro 7": 140, "Hierro 8": 130, "Hierro 9": 115, "PW": 105, "AW": 97,
-                 "Sand 52°": 89, "Sand 56°": 80}
+                 "Wedge 52°": 89, "Sand 56°": 80}
     est = {name: v * YD for name, v in LADDER_YD.items()}
     for name, extra in CLUB_UNRECORDED.items():
         dictated[name].extend(extra)
@@ -314,7 +319,7 @@ def main():
             "name": name,
             "m": round(st.median(real)) if len(real) >= 3 else round(est[name]),
             "source": "garmin" if len(real) >= 3 else "estimado",
-            **({"model": "M4"} if name == "Driver" else {}),
+            **({"model": MODELS[name]} if name in MODELS else {}),
             # Lo real de los golpes dictados va aparte: `m` sigue siendo la tabla, porque
             # el plan ordena la bolsa por distancia y un Driver de 153 m quedaría abajo
             # del Hierro 4 y se sugeriría para tirar a green.

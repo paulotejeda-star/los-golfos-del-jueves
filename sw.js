@@ -1,4 +1,4 @@
-const CACHE_NAME = 'golfos-jueves-v5';
+const CACHE_NAME = 'golfos-jueves-v6';
 const TAILWIND_URL = 'https://cdn.tailwindcss.com/';
 const ASSETS = [
   '/',
@@ -11,7 +11,8 @@ const ASSETS = [
   '/caddy-vivo.js',
   '/caddy-vivo.css',
   '/caddy-data.json',
-  '/caddy-campos.json'
+  '/caddy-campos.json',
+  '/caddy-grupo.json'
 ];
 
 self.addEventListener('install', (event) => {
