@@ -43,9 +43,11 @@ HOME = "huerta"
 # Rondas que no fueron el juego de Paulo: se ven en el progreso, marcadas, pero no
 # entran a los promedios ni a las distancias del Caddy. (El handicap lo calcula
 # Garmin y ahí ya quedó contada.) Clave: (fecha, n-ésima ronda de ese día).
-EXCLUDE = {
-    ("2026-11-16", 2): "Otra persona jugó los 9 hoyos con tu reloj",
-}
+EXCLUDE = {}
+# Rondas que se quitan del todo: no salen en el progreso ni en ningún cálculo del
+# Caddy. El handicap sigue como lo da Garmin. Clave: (fecha, n-ésima ronda de ese día).
+# 16-nov, 2ª: la jugó otra persona con el reloj de Paulo; él pidió quitarla (25-nov).
+DROP = {("2026-11-16", 2)}
 # Palos que dictó Paulo el 22-nov-2026, porque el reloj no los marcó. En estas rondas
 # salió con su Driver (M4) en los par 4 y par 5. Clave: (fecha, n-ésima ronda del día).
 DRIVER_ROUNDS = {("2026-11-18", 1), ("2026-11-22", 1), ("2026-11-22", 2)}
@@ -139,6 +141,8 @@ def main():
         pars = snap["holePars"]
         day = (sc.get("formattedStartTime") or sc["startTime"])[:10]
         per_day[day] += 1
+        if (day, per_day[day]) in DROP:
+            continue
         skip = EXCLUDE.get((day, per_day[day]))
         home = HOME in (snap.get("name") or "").lower()
         if course is None and home:
