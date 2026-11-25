@@ -9,7 +9,7 @@
   const UNIT_KEY = 'caddy_ptc_unidad';
   const YD = 1.0936;
   const REACH = 0.5;
-  const CHIP = 'Chip rodado con Hierro 8';
+  const CHIP = 'Chipper, rodado como putt';
 
   // Reglas generales de cuánto más o menos juega un tiro. Son estimaciones del Caddy.
   const WIND = { none: 0, contra: 0.10, favor: -0.05, cruz: 0 };
@@ -107,7 +107,8 @@
       options.push({ kind, club, m, shot: left ? go : dist, left, why });
     };
     const H7 = api.club('Hierro 7', f);
-    const H4 = api.club('Hierro 4', f);
+    const H4 = api.club('Híbrido 4', f) || api.club('Hierro 4', f) || H7;
+    const HY = api.club('Híbrido 5', f);
     const S56 = api.club('Sand 56°', f);
     const PW = api.club('PW', f);
     const W3 = api.club('Madera 3', f);
@@ -126,8 +127,14 @@
         add('safe', 'Sand 56°, cara abierta', Math.min(plays, 40), 'Si el borde está alto: sal al fairway aunque avances poco.');
       }
     } else if (isTee && info.par >= 4 && drv && dist > drv.m) {
-      add('best', drv.name, drv.m, 'Tu salida real en par 4 y par 5.');
-      add('safe', H7.name, H7.m, 'Si el fairway está angosto o hay problema donde cae el M4.');
+      const tee = HY || H7;
+      if (info.group && info.group.mode === 'cuida') {
+        add('best', tee.name, tee.m, 'Hoyo para cuidar: es más fácil de pegar derecho que el M4 y te deja un tiro corto al green.');
+        add('bold', drv.name, drv.m, 'Tu salida real con el M4, si el fairway está abierto y vienes pegando derecho.');
+      } else {
+        add('best', drv.name, drv.m, 'Tu salida real en par 4 y par 5.');
+        add('safe', tee.name, tee.m, 'Si el fairway está angosto o hay problema donde cae el M4.');
+      }
     } else if (plays <= 30) {
       const cl = api.clock(plays, f);
       if (h.danger === 'front') {
@@ -136,7 +143,7 @@
         add('best', cl.name, cl.m, 'En rough la bola no rueda pareja: vuélala al green.');
         add('safe', CHIP, plays, 'Si la bola quedó arriba del pasto.');
       } else {
-        add('best', CHIP, plays, 'Rueda la bola: es tu tiro más seguro desde aquí.');
+        add('best', CHIP, plays, 'Con golpe de putt: la bola sale bajita y rueda hasta el hoyo. Es tu tiro más seguro desde aquí.');
         if (dist <= 12) add('safe', 'Putter', plays, 'Si el pasto está parejo hasta el green.');
         add('bold', cl.name, cl.m, 'Si tienes que volarla.');
       }

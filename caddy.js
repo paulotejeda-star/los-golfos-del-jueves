@@ -152,6 +152,8 @@
   function loadBag() {
     let saved = {};
     try { saved = JSON.parse(localStorage.getItem(BAG_KEY) || '{}') || {}; } catch (e) { saved = {}; }
+    // El 52° se llamaba «Sand 52°»: si lo habías ajustado, el ajuste se queda
+    if (saved['Sand 52°'] != null && saved['Wedge 52°'] == null) saved['Wedge 52°'] = saved['Sand 52°'];
     bag = (data.clubs || []).map((c) => ({ ...c, est: c.m, m: Number(saved[c.name]) || c.m, edited: saved[c.name] != null && Number(saved[c.name]) !== c.m }));
   }
   function saveBag() {
@@ -169,7 +171,7 @@
   function clockShots() {
     const base = bag.find((c) => c.name === 'Sand 56°');
     if (!base) return [];
-    return ['Sand 56°', 'Sand 52°'].flatMap((name) => {
+    return ['Sand 56°', 'Wedge 52°'].flatMap((name) => {
       const c = bag.find((x) => x.name === name);
       if (!c) return [];
       const k = c.m / base.est;
@@ -191,13 +193,13 @@
     return s ? s.name : null;
   }
   // Un palo más: el más corto que llega y luego el siguiente más largo, porque tu
-  // fallo es quedarte corto. Tope en el Hierro 4: las maderas no son para tirar a green.
+  // fallo es quedarte corto. Tope en el Híbrido 4: las maderas no son para tirar a green.
   function clubFor(dist) {
     dist /= distScale;
     const byLen = shotLadder();
     const i = byLen.findIndex((c) => c.m + REACH >= dist);
     if (i < 0) return byLen[byLen.length - 1];
-    const cap = byLen.findIndex((c) => c.name === 'Hierro 4');
+    const cap = byLen.findIndex((c) => c.name === CAP_CLUB);
     const up = Math.min(i + 1, byLen.length - 1);
     return byLen[cap >= 0 && i <= cap ? Math.min(up, cap) : i];
   }
@@ -206,6 +208,14 @@
     dist /= distScale;
     const byLen = shotLadder();
     return byLen.find((c) => c.m + REACH >= dist) || byLen[byLen.length - 1];
+  }
+  // Palo más largo para tirar a green, salida segura en par 4 y chip alrededor del green
+  const CAP_CLUB = 'Híbrido 4';
+  const SAFE_TEE = 'Híbrido 5';
+  const CHIP_SHOT = 'Chipper, rodado como putt';
+  function safeTee() {
+    const c = bag.find((x) => x.name === SAFE_TEE);
+    return c ? { name: c.name, m: Math.round(c.m * distScale) } : null;
   }
   function steadyClub() {
     return bag.find((c) => c.name === 'Hierro 7') || bag[Math.floor(bag.length / 2)];
@@ -220,9 +230,10 @@
     return { name: `${c.name}${c.model ? ` ${c.model}` : ''}`, m: Math.round(!c.edited && real ? real : c.m * distScale) };
   }
   // Par 4 y 5: salida con el M4 y de ahí al green. Si el hoyo es más corto que tu salida,
-  // no hace falta el Driver y queda el plan con hierros.
-  function longHoleSteps(len, labels) {
-    const d = driverTee();
+  // no hace falta el Driver y queda el plan con hierros. En los hoyos para cuidar del grupo
+  // la salida es con el Híbrido 5: más fácil de pegar derecho que el M4.
+  function longHoleSteps(len, labels, careful) {
+    const d = (careful && safeTee()) || driverTee();
     if (!d || len <= d.m) return stepsFrom(len, labels, false);
     const left = len - d.m;
     return [{ label: labels[0], club: d.name, shot: d.m, left }, ...stepsFrom(left, labels.slice(1), true)];
@@ -235,12 +246,12 @@
       const c = clubFor(len);
       return [{ label: (groupHole(h.n) || {}).mode === 'ataca' ? 'Salida a la bandera' : 'Salida al centro del green', club: c.name, shot: len, left: 0 }];
     }
-    // Par 4: salida con el M4 (Paulo, 22-nov); hierro 7 si todavía no alcanzas, y al
-    // green con un palo más (o chip rodado si quedan 30 m o menos).
-    return longHoleSteps(len, ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo']);
+    // Par 4: salida con el M4 (Paulo, 22-nov), o con el Híbrido 5 si el hoyo es para cuidar;
+    // hierro 7 si todavía no alcanzas, y al green con un palo más (o chipper si quedan 30 m o menos).
+    return longHoleSteps(len, ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo'], (groupHole(h.n) || {}).mode === 'cuida');
   }
   // Golpes desde una distancia: hierro 7 mientras no alcances, luego un palo más al
-  // green, o chip rodado con hierro 8 si quedan 30 m o menos.
+  // green, o el chipper con golpe de putt si quedan 30 m o menos.
   function stepsFrom(dist, labels, chipFirst, exact) {
     const st = steadyClub();
     const steps = [];
@@ -248,7 +259,7 @@
     while (left > 0 && steps.length < 6) {
       const label = labels[steps.length] || `Golpe ${steps.length + 1}`;
       if (left <= 30 && (chipFirst || steps.length)) {
-        steps.push({ label: 'Al green', club: 'Chip rodado con Hierro 8', alt: clockFor(left), shot: left, left: 0 });
+        steps.push({ label: 'Al green', club: CHIP_SHOT, alt: clockFor(left), shot: left, left: 0 });
         left = 0;
       } else if (left > st.m * distScale + REACH) {
         const m = Math.round(st.m * distScale);
@@ -328,8 +339,11 @@
   function groupTip(g) {
     const r = pointRules();
     const st = `Recibes ${g.strokes} golpe${g.strokes === 1 ? '' : 's'}, así que ${g.net} es tu par neto`;
-    if (g.mode === 'ataca') return `Hoyo para atacar: ${g.why}. Tira a la bandera con un palo más. Si la salida queda en green peleas el O'yes (+${r.oyes}) y el par te da +${r.par}. ${st} y ${g.par} sería birdie neto.`;
-    if (g.mode === 'cuida') return `Hoyo para cuidar el número: ${g.why}. ${st} y ${g.net + 1} todavía es bogey neto. Salida en juego, al centro del green y nada de golpes de héroe. Tu tope es ${g.cap}: si ya vas en ${g.net} sin embocar, juega solo a terminar.`;
+    if (g.mode === 'ataca') return `Hoyo para atacar: ${g.why}. Tira a la bandera con un palo más. Si la salida queda en green peleas el O'yes (+${r.oyes}) y el par te da +${r.par}; si se queda en el collar, chipper para dejarla cerca. ${st} y ${g.par} sería birdie neto.`;
+    if (g.mode === 'cuida') {
+      const tee = g.par >= 4 && safeTee() ? `Sal con el ${safeTee().name}: es más fácil de pegar derecho que el M4. ` : 'Salida en juego, ';
+      return `Hoyo para cuidar el número: ${g.why}. ${st} y ${g.net + 1} todavía es bogey neto. ${tee}${tee.endsWith(', ') ? 'al' : 'Al'} centro del green y nada de golpes de héroe; si quedas corto, chipper y dos putts. Tu tope es ${g.cap}: si ya vas en ${g.net} sin embocar, juega solo a terminar.`;
+    }
     return `Al centro del green con un palo más y dos putts (${g.why}). ${st}: con eso cumples.`;
   }
   const andList = (t) => (t.length > 1 ? `${t.slice(0, -1).join(', ')} y ${t[t.length - 1]}` : t[0] || '');
@@ -353,7 +367,11 @@
     };
     const text = {
       ataca: () => `Cortos para ti y ahí ya hiciste par. Bandera con un palo más: de aquí salen el O'yes (+${r.oyes}) y el par (+${r.par}).`,
-      cuida: (arr) => `Aquí se te van los números grandes. ${netIs(arr)} Salida en juego, al centro del green y nunca pases del tope.`,
+      cuida: (arr) => {
+        const p4 = arr.filter((g) => g.par >= 4);
+        const tee = p4.length && safeTee() ? ` En ${andList(p4.map((g) => `el H${g.n}`))} sal con el ${safeTee().name}.` : '';
+        return `Aquí se te van los números grandes. ${netIs(arr)}${tee} Bola en juego, al centro del green y, si quedas corto, chipper y dos putts. Nunca pases del tope.`;
+      },
       centro: (arr) => `Un palo más al centro del green y dos putts. ${netIs(arr)}`,
     };
     const tile = (v, label, cls) => `<div class="bg-[#0a2019] rounded-xl py-2"><div class="text-lg font-extrabold ${cls} cd-big leading-tight">${v}</div><div class="text-[10px] cd-muted leading-tight">${label}</div></div>`;
@@ -416,7 +434,7 @@
     const right = data.fairway && data.fairway.percentFairwayRight;
     if (h.par === 4) {
       const s = holeSteps(h);
-      const first = s[0] && /^Driver/.test(s[0].club) ? `Salida con tu ${s[0].club} a ${mYd(s[0].shot)}` : 'Salida recta';
+      const first = s[0] && /^(Driver|Híbrido)/.test(s[0].club) ? `Salida con ${/^Driver/.test(s[0].club) ? 'tu' : 'el'} ${s[0].club} a ${mYd(s[0].shot)}` : 'Salida recta';
       const last = s.length ? s[s.length - 1].club.replace(/^Chip/, 'chip') : 'un palo más';
       return `${first} y al green con ${last}. Apunta al lado izquierdo: ${pct(right)} de tus salidas se van a la derecha. Si haces ${metaOf(h)}, ganaste el hoyo contra tu handicap.`;
     }
@@ -427,7 +445,7 @@
       return `Te quedas corto: tu salida promedia ${mYd(h.tee)} y el hoyo mide ${mYd(h.len)}. Toma un palo más y ${attack ? 'apunta a la bandera: con ese palo ya llegas' : 'apunta al centro del green, no a la bandera'}.`;
     }
     if ((h.inside || 0) >= 3.5) {
-      return `Llegas cerca, pero gastas ${fmt1(h.inside)} golpes desde 30 m. Rueda la bola con hierro 8 hasta el green y busca dejar un putt corto.`;
+      return `Llegas cerca, pero gastas ${fmt1(h.inside)} golpes desde 30 m. Rueda la bola con el chipper, con golpe de putt, y busca dejar un putt corto.`;
     }
     return attack
       ? `Es de tus hoyos buenos y aquí se pelea el par. Un palo más a la bandera y dos putts. Tu meta aquí es ${metaOf(h)}.`
@@ -440,10 +458,10 @@
     const sv = d.savings;
     const plays = [
       { key: 'short', icon: '🎯', title: 'Dentro de 30 m: rueda, no vueles', save: sv.short,
-        why: `Desde 30 m (33 yd) usas ${fmt1(d.par3.insideAvg)} golpes en los par 3. Un buen jugador de tu nivel usa 3. Chip rodado con hierro 8 y putt.` },
+        why: `Desde 30 m (33 yd) usas ${fmt1(d.par3.insideAvg)} golpes en los par 3. Un buen jugador de tu nivel usa 3. Chipper con golpe de putt y a embocar.` },
       { key: 'tee3', icon: '🏌️', title: 'Par 3: un palo más', save: sv.tee3,
         why: `Tus salidas promedian ${mYd(d.par3.teeDist)} en hoyos de ${mYd(d.par3.holeLen)}. Solo ${d.par3.teeOnGreen} de ${d.par3.n} cayeron en green; ${d.par3.teeRough} se fueron al rough.` },
-      { key: 'par4', icon: '↖️', title: 'Par 4: M4 y wedge, apunta a la izquierda', save: sv.par4,
+      { key: 'par4', icon: '↖️', title: 'Par 4: salida en juego y wedge, apunta a la izquierda', save: sv.par4,
         why: `Promedias ${fmt1(d.par4.avgStrokes)} golpes en los par 4. ${pct(d.fairway.percentFairwayRight)} de tus salidas fallan a la derecha y ${pct(d.fairway.percentFairwayLeft)} a la izquierda.` },
       { key: 'damage', icon: '🛟', title: 'Control de daños: nada de golpes de héroe', save: sv.damage,
         why: `${d.blowups} de tus ${d.holesWithShots} hoyos terminaron en 4 o más sobre par. Desde problemas, saca de lado al fairway y olvida el árbol.` },
@@ -588,8 +606,8 @@
             : `<p class="text-[11px] text-emerald-300 mt-1 leading-snug"><b>${c.name}:</b> ${r.n} golpe${r.n === 1 ? '' : 's'} anotado${r.n === 1 ? '' : 's'} (${donde}), ${r.range || `${r.median} m`} según lo que anotaste. Con 3 o más ya sale su distancia.</p>`;
         }).join('')}
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
-          ? `Distancias de la guía que mandaste (columna de hombres). La guía no trae el AW ni el 52°: quedan repartidos parejo entre el PW y el 56°. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
-          : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge (el de aproximación); los sand de 52° y 56° son los de arena.</p>
+          ? `Distancias de la guía que mandaste (columna de hombres). La guía no trae el AW ni el 52°: quedan repartidos parejo entre el PW y el 56°. Los híbridos 4 y 5 toman la fila del hierro que reemplazan hasta que marques 3 golpes con cada uno. El plan ya te da un palo más del que alcanza, porque tu fallo es quedarte corto. Si un palo no te cuadra, ajústalo con − y + (se guarda en tu teléfono) y el plan de cada hoyo se recalcula. Si marcas el palo en el reloj después de cada golpe, el Caddy usará tus distancias reales.`
+          : 'Distancias reales: la mediana de tus golpes con cada palo marcado en el reloj.'} PW = pitching wedge y AW = approach wedge; el 52° también es de aproximación y el 56° es el de arena. El chipper es para rodar la bola desde fuera del green con golpe de putt.</p>
       </div>
 
       <!-- 5. Progreso -->
@@ -779,11 +797,11 @@
     const full = (name) => bag.find((c) => c.name === name);
     const rows = WEDGE_CLOCK.map(([hour]) => {
       const a = at('Sand 56°', hour);
-      const b = at('Sand 52°', hour);
+      const b = at('Wedge 52°', hour);
       return `<tr class="border-t border-emerald-900/60"><th scope="row" class="py-1 text-left font-bold text-amber-300">A las ${hour}</th>${cell(a.yd, a.m)}${b ? cell(b.yd, b.m) : '<td></td>'}</tr>`;
     }).join('');
     const f56 = full('Sand 56°');
-    const f52 = full('Sand 52°');
+    const f52 = full('Wedge 52°');
     return `
       <div class="rounded-xl bg-[#0a2019] p-3" style="margin-top:.75rem">
         <p class="text-xs font-bold text-white">🕙 Reloj de wedges</p>
@@ -807,7 +825,7 @@
     const max = Math.max(...bag.map((c) => c.m), 1);
     box.innerHTML = bag.map((c, i) => `
       <div class="flex items-center gap-2">
-        <span class="w-20 text-xs font-bold text-white shrink-0">${c.name}${c.model ? ` ${c.model}` : ''}</span>
+        <span class="w-20 text-xs font-bold text-white shrink-0 leading-tight">${c.name}${c.model ? `<span class="block text-[10px] font-semibold cd-muted">${c.model}</span>` : ''}</span>
         <div class="flex-1 h-6 bg-[#0a2019] rounded-lg relative overflow-hidden">
           <div class="h-full rounded-lg bg-gradient-to-r from-emerald-700 to-emerald-400" style="width:${(c.m / max) * 100}%;transition:width .4s"></div>
           <span class="absolute inset-0 flex items-center pl-2 text-[11px] font-extrabold text-white cd-big">${c.m} m · ${yd(c.m)} yd${c.edited ? ' ✎' : ''}</span>
@@ -815,6 +833,10 @@
         <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="-1" aria-label="Restar 1 metro a ${c.name}">−</button>
         <button type="button" class="w-8 h-8 rounded-lg bg-[#0a2019] border border-emerald-900 text-white font-bold" data-bag="${i}" data-step="1" aria-label="Sumar 1 metro a ${c.name}">+</button>
       </div>`).join('') + `
+      <div class="flex items-center gap-2">
+        <span class="w-20 text-xs font-bold text-white shrink-0">Chipper</span>
+        <div class="flex-1 h-6 bg-[#0a2019] rounded-lg flex items-center pl-2 text-[11px] font-bold cd-muted">fuera del green, hasta 30 m · golpe de putt</div>
+      </div>
       <div class="flex items-center gap-2">
         <span class="w-20 text-xs font-bold text-white shrink-0">Putter</span>
         <div class="flex-1 h-6 bg-[#0a2019] rounded-lg flex items-center pl-2 text-[11px] font-bold cd-muted">en el green</div>
@@ -895,7 +917,7 @@
   function courseSteps(h) {
     if (!bag.length) return [];
     const labels = ['Salida', 'Segundo', 'Tercero', 'Cuarto', 'Quinto', 'Sexto', 'Séptimo'];
-    const cap = bag.find((c) => c.name === 'Hierro 4');
+    const cap = bag.find((c) => c.name === CAP_CLUB);
     if (h.par === 3 && (!cap || h.len <= cap.m * distScale)) return [{ label: 'Salida al centro del green', club: clubFor(h.len).name, shot: h.len, left: 0 }];
     if (h.par === 3) return stepsFrom(h.len, labels, false);
     return longHoleSteps(h.len, labels);
