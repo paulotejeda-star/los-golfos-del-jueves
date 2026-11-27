@@ -1,6 +1,6 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-27T01:44+00:00",
+ "updated": "2026-11-27T01:52+00:00",
  "handicap": 46.69,
  "courseHandicap18": 26,
  "rounds": [
@@ -369,12 +369,11 @@
    "source": "estimado",
    "model": "R11",
    "dictated": {
-    "n": 1,
-    "range": "de 100 a 120 m",
-    "median": 110,
-    "best": 110,
+    "n": 4,
+    "median": 114,
+    "best": 123,
     "byCourse": {
-     "La Huerta": 1
+     "La Huerta": 4
     }
    }
   },
@@ -382,7 +381,15 @@
    "name": "Híbrido 4",
    "m": 155,
    "source": "estimado",
-   "model": "Qi4D"
+   "model": "Qi4D",
+   "dictated": {
+    "n": 3,
+    "median": 61,
+    "best": 94,
+    "byCourse": {
+     "La Huerta": 3
+    }
+   }
   },
   {
    "name": "Híbrido 5",

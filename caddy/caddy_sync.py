@@ -51,6 +51,13 @@ DROP = {("2026-11-16", 2)}
 # Palos que dictó Paulo el 22-nov-2026, porque el reloj no los marcó. En estas rondas
 # salió con su Driver (M4) en los par 4 y par 5. Clave: (fecha, n-ésima ronda del día).
 DRIVER_ROUNDS = {("2026-11-18", 1), ("2026-11-22", 1), ("2026-11-22", 2)}
+# Rondas en que la salida de par 4 y 5 NO fue con el Driver: (fecha, ronda del día) → palo.
+# SECOND_CLUB: el palo del golpe que sigue a esa salida (el siguiente que registró el reloj).
+# 26-nov, las dos vueltas: salió con el Híbrido 4 y pegó el 2º golpe con la Madera 3
+# (lo dictó Paulo el mismo día). En la 1ª vuelta el reloj no registró la salida del hoyo 6:
+# ese hoyo queda sin palo.
+TEE_CLUB = {("2026-11-26", 1): "Híbrido 4", ("2026-11-26", 2): "Híbrido 4"}
+SECOND_CLUB = {("2026-11-26", 1): "Madera 3", ("2026-11-26", 2): "Madera 3"}
 # Golpes puntuales: (fecha, ronda del día, hoyo, número de golpe en Garmin) → (palo, metros).
 # Los metros son los que dijo Paulo y mandan sobre el reloj, que en estos midió mal
 # (47, 25 y 175 m): Driver de 100 yd y 165 yd, Madera 3 de «100 o 120 m» (punto medio).
@@ -170,7 +177,7 @@ def main():
             **({"excluded": skip} if skip else {}),
         })
         round_no = per_day[day]
-        driver_round = (day, round_no) in DRIVER_ROUNDS
+        driver_round = (day, round_no) in DRIVER_ROUNDS or (day, round_no) in TEE_CLUB
         if skip or not (home or driver_round):
             continue
 
@@ -198,7 +205,11 @@ def main():
                         x["meters"] = note[1]
                 tee_shot = driver_shot(sh) if int(pars[n - 1]) >= 4 else None
                 if tee_shot and not noted:
-                    noted[tee_shot["shotOrder"]] = "Driver"
+                    noted[tee_shot["shotOrder"]] = TEE_CLUB.get((day, round_no), "Driver")
+                    nxt = next((x for x in sh if x["shotOrder"] > tee_shot["shotOrder"]), None)
+                    second = SECOND_CLUB.get((day, round_no))
+                    if second and nxt and nxt.get("shotType") not in ("PUTT", "CHIP"):
+                        noted[nxt["shotOrder"]] = second
                 for x in sh:
                     if x["shotOrder"] in noted:
                         dictated[noted[x["shotOrder"]]].append((x["meters"], where))

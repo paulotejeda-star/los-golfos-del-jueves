@@ -602,7 +602,7 @@
           const r = c.dictated;
           const donde = Object.entries(r.byCourse).map(([w, n]) => `${n} en ${w}`).join(', ');
           return r.n >= 3
-            ? `<p class="text-[11px] text-emerald-300 mt-3 leading-snug"><b>${c.name}${c.model ? ` ${c.model}` : ''}, tus golpes reales:</b> ${r.n} salidas (${donde}). La mediana es ${r.median} m / ${yd(r.median)} yd y la mejor ${r.best} m / ${yd(r.best)} yd. Tu plan de salida usa esa mediana; si ajustas el Driver con − y +, usa tu ajuste.</p>`
+            ? `<p class="text-[11px] text-emerald-300 mt-3 leading-snug"><b>${c.name}${c.model ? ` ${c.model}` : ''}, tus golpes reales:</b> ${r.n} ${c.name === 'Driver' ? 'salidas' : 'golpes'} (${donde}). La mediana es ${r.median} m / ${yd(r.median)} yd y la mejor ${r.best} m / ${yd(r.best)} yd. ${c.name === 'Driver' ? 'Tu plan de salida usa esa mediana; si ajustas el Driver con − y +, usa tu ajuste.' : 'Es lo que anotaste; el plan de este palo sigue con la distancia de la guía.'}</p>`
             : `<p class="text-[11px] text-emerald-300 mt-1 leading-snug"><b>${c.name}:</b> ${r.n} golpe${r.n === 1 ? '' : 's'} anotado${r.n === 1 ? '' : 's'} (${donde}), ${r.range || `${r.median} m`} según lo que anotaste. Con 3 o más ya sale su distancia.</p>`;
         }).join('')}
         <p class="text-[11px] cd-muted mt-3 leading-snug">${(data.clubs || []).some((c) => c.source === 'estimado')
