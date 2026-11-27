@@ -1,8 +1,8 @@
 {
  "player": "Paulo Tejeda C",
- "updated": "2026-11-25T19:51+00:00",
- "handicap": 45.2,
- "courseHandicap18": 25,
+ "updated": "2026-11-27T01:44+00:00",
+ "handicap": 46.69,
+ "courseHandicap18": 26,
  "rounds": [
   {
    "date": "2026-10-06",
@@ -129,10 +129,26 @@
    "par": 29,
    "overPerHole": 2.11,
    "longest": 100
+  },
+  {
+   "date": "2026-11-26",
+   "holes": 9,
+   "strokes": 50,
+   "par": 29,
+   "overPerHole": 2.33,
+   "longest": 94
+  },
+  {
+   "date": "2026-11-26",
+   "holes": 9,
+   "strokes": 51,
+   "par": 29,
+   "overPerHole": 2.44,
+   "longest": 110
   }
  ],
- "numRounds": 14,
- "holesWithShots": 97,
+ "numRounds": 16,
+ "holesWithShots": 114,
  "course": {
   "name": "La Huerta Golf & Hotel",
   "city": "Zerezotla",
@@ -140,19 +156,19 @@
   "rating18": 52.61,
   "slope": 76
  },
- "personalPar9": 41,
+ "personalPar9": 42,
  "par9": 29,
- "avg9": 47,
+ "avg9": 48.0,
  "fairway": {
-  "percentFairwayLeft": 18.52,
-  "percentFairwayRight": 51.85,
-  "percentFairwayHit": 29.63
+  "percentFairwayLeft": 25.93,
+  "percentFairwayRight": 40.74,
+  "percentFairwayHit": 33.33
  },
  "strokesGained": [
   {
    "key": "DRIVE",
    "name": "Salida",
-   "you": -0.47,
+   "you": -0.48,
    "group": -0.46,
    "trend": "UP"
   },
@@ -166,9 +182,9 @@
   {
    "key": "CHIP",
    "name": "Chip",
-   "you": -0.47,
+   "you": -0.42,
    "group": -0.51,
-   "trend": "UP"
+   "trend": "EVEN"
   },
   {
    "key": "PUTT",
@@ -189,37 +205,37 @@
    "name": "Recuperación",
    "you": -0.18,
    "group": -0.35,
-   "trend": "UP"
+   "trend": "EVEN"
   }
  ],
  "par3": {
-  "n": 77,
-  "avgStrokes": 4.87,
+  "n": 90,
+  "avgStrokes": 4.92,
   "holeLen": 94.0,
   "teeDist": 72.0,
   "leftToPin": 26.0,
-  "teeOnGreen": 19,
-  "teeRough": 36,
+  "teeOnGreen": 24,
+  "teeRough": 41,
   "teeBunker": 5,
-  "insideAvg": 3.38
+  "insideAvg": 3.45
  },
  "par4": {
-  "n": 20,
-  "avgStrokes": 6.05,
-  "holeLen": 214.0,
-  "teeDist": 78.0,
-  "leftToPin": 148.0,
+  "n": 24,
+  "avgStrokes": 6.25,
+  "holeLen": 213.0,
+  "teeDist": 75.0,
+  "leftToPin": 149.0,
   "teeOnGreen": 0,
-  "teeRough": 12,
+  "teeRough": 14,
   "teeBunker": 0,
-  "insideAvg": 1.5
+  "insideAvg": 1.95
  },
- "blowups": 8,
+ "blowups": 12,
  "savings": {
   "tee3": 0.9,
-  "short": 2.7,
-  "par4": 1.1,
-  "damage": 1.1
+  "short": 3.2,
+  "par4": 1.5,
+  "damage": 1.4
  },
  "plan": [
   {
@@ -227,12 +243,12 @@
    "par": 4,
    "index": 4,
    "personalPar": 6,
-   "len": 217,
+   "len": 215,
    "avg": 5.8,
    "best": 4,
-   "times": 8,
-   "tee": 70.0,
-   "inside": 1
+   "times": 10,
+   "tee": 72.0,
+   "inside": 1.6
   },
   {
    "n": 2,
@@ -240,10 +256,10 @@
    "index": 16,
    "personalPar": 4,
    "len": 75,
-   "avg": 4.7,
+   "avg": 4.8,
    "best": 3,
-   "times": 12,
-   "tee": 73.0,
+   "times": 14,
+   "tee": 70.0,
    "inside": 3.5
   },
   {
@@ -251,10 +267,10 @@
    "par": 3,
    "index": 6,
    "personalPar": 5,
-   "len": 113,
+   "len": 112,
    "avg": 5.5,
    "best": 3,
-   "times": 10,
+   "times": 11,
    "tee": 65.0,
    "inside": 3.6
   },
@@ -266,8 +282,8 @@
    "len": 74,
    "avg": 4.7,
    "best": 3,
-   "times": 11,
-   "tee": 53.0,
+   "times": 13,
+   "tee": 57.0,
    "inside": 3.2
   },
   {
@@ -276,11 +292,11 @@
    "index": 12,
    "personalPar": 4,
    "len": 97,
-   "avg": 4.6,
+   "avg": 4.8,
    "best": 3,
-   "times": 11,
-   "tee": 72.0,
-   "inside": 3
+   "times": 13,
+   "tee": 67.0,
+   "inside": 3.1
   },
   {
    "n": 6,
@@ -288,11 +304,11 @@
    "index": 2,
    "personalPar": 6,
    "len": 210,
-   "avg": 6.2,
+   "avg": 6.6,
    "best": 4,
-   "times": 12,
-   "tee": 81.0,
-   "inside": 1.8
+   "times": 14,
+   "tee": 76.0,
+   "inside": 2.1
   },
   {
    "n": 7,
@@ -300,11 +316,11 @@
    "index": 10,
    "personalPar": 4,
    "len": 100,
-   "avg": 5,
+   "avg": 5.2,
    "best": 3,
-   "times": 12,
-   "tee": 87.0,
-   "inside": 3.5
+   "times": 14,
+   "tee": 89.0,
+   "inside": 3.8
   },
   {
    "n": 8,
@@ -312,23 +328,23 @@
    "index": 14,
    "personalPar": 4,
    "len": 86,
-   "avg": 4.9,
+   "avg": 4.8,
    "best": 4,
-   "times": 11,
-   "tee": 79.0,
+   "times": 13,
+   "tee": 81.0,
    "inside": 3.5
   },
   {
    "n": 9,
    "par": 3,
    "index": 8,
-   "personalPar": 4,
-   "len": 106,
+   "personalPar": 5,
+   "len": 107,
    "avg": 4.7,
    "best": 4,
-   "times": 10,
-   "tee": 77.0,
-   "inside": 3.3
+   "times": 12,
+   "tee": 76.0,
+   "inside": 3.2
   }
  ],
  "clubs": [
@@ -416,10 +432,10 @@
   }
  ],
  "fullShots": {
-  "n": 101,
+  "n": 119,
   "p50": 77,
-  "p75": 96,
-  "p90": 108,
+  "p75": 95,
+  "p90": 110,
   "max": 159
  },
  "puttsTracked": false
